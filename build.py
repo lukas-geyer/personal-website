@@ -7,11 +7,13 @@ Usage: python3 build.py
 from __future__ import annotations
 
 import datetime
+import email.utils
 import html
 import json
 import pathlib
 import re
 import shutil
+import xml.sax.saxutils as saxutils
 
 ROOT = pathlib.Path(__file__).parent
 CONTENT_WRITING = ROOT / "content" / "writing"
@@ -153,6 +155,22 @@ def format_date(iso_date: str) -> str:
         return iso_date
 
 
+def format_rfc822_date(iso_date: str) -> str:
+    """Convert an ISO date (YYYY-MM-DD) into an RFC 822 timestamp for RSS."""
+    try:
+        dt = datetime.date.fromisoformat(iso_date)
+        published = datetime.datetime.combine(
+            dt, datetime.time(0, 0), tzinfo=datetime.timezone.utc
+        )
+        return email.utils.format_datetime(published)
+    except ValueError:
+        return iso_date
+
+
+def xml_escape(text: str) -> str:
+    return saxutils.escape(text, {"'": "&apos;", '"': "&quot;"})
+
+
 def semestra_icon_svg(size: int = 24) -> str:
     return f"""<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="3" y="4" width="18" height="16" rx="3" stroke="white" stroke-width="1.5"/>
@@ -242,6 +260,7 @@ def page_layout(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{html.escape(title)}</title>
   <link rel="stylesheet" href="{prefix}styles.css" />
+  <link rel="alternate" type="application/rss+xml" title="{name} RSS" href="{prefix}rss.xml" />
 </head>
 <body>
   {progress_html}
@@ -555,6 +574,13 @@ def build() -> None:
 </article>"""
         )
 
+    support_email = sem.get("support_email", "").strip()
+    support_meta_html = (
+        f'<div>Support: <a href="mailto:{html.escape(support_email)}">{html.escape(support_email)}</a></div>'
+        if support_email
+        else ""
+    )
+
     semestra_html = f"""
     <section class="semestra-hero">
       <div>
@@ -570,8 +596,9 @@ def build() -> None:
           <a href="{html.escape(sem['app_store_url'])}" class="btn-solid" target="_blank" rel="noopener noreferrer">View on App Store &#8599;</a>
           <a href="#changelog" class="btn-outline">Read Changelog</a>
         </div>
-        <div style="font-family: var(--mono); font-size: 11px; color: var(--faint);">
-          {html.escape(sem['platforms'])} &middot; {html.escape(sem['pricing'])}
+        <div class="semestra-meta">
+          <div>{html.escape(sem['platforms'])} &middot; {html.escape(sem['pricing'])}</div>
+          {support_meta_html}
         </div>
       </div>
 
@@ -628,6 +655,26 @@ def build() -> None:
     )
 
     # 5. About Page (dist/about/index.html)
+    github_link = next(
+        (
+            link["url"]
+            for link in site.get("links", [])
+            if link.get("label", "").lower() == "github" and link.get("url")
+        ),
+        "",
+    )
+    support_aside_html = (
+        f'<li><span class="aside-note">Semestra support</span>'
+        f'<a href="mailto:{html.escape(support_email)}">{html.escape(support_email)}</a></li>'
+        if support_email
+        else ""
+    )
+    github_aside_html = (
+        f'<li><a href="{html.escape(github_link)}" target="_blank" rel="noopener noreferrer">GitHub &#8599;</a></li>'
+        if github_link
+        else ""
+    )
+
     about_html = f"""
     <section class="intro-band" style="margin-bottom: 40px;">
       <div class="kicker">Colophon &amp; Notes</div>
@@ -653,8 +700,10 @@ def build() -> None:
       <aside class="about-aside">
         <h3>Correspondence &amp; Links</h3>
         <ul>
-          <li><a href="mailto:{html.escape(site['email'])}">{html.escape(site['email'])}</a></li>
+          <li><span class="aside-note">Writing &amp; general</span><a href="mailto:{html.escape(site['email'])}">{html.escape(site['email'])}</a></li>
+          {support_aside_html}
           <li><a href="{html.escape(sem['app_store_url'])}" target="_blank" rel="noopener noreferrer">Semestra on the App Store &#8599;</a></li>
+          {github_aside_html}
           <li><a href="../writing/index.html">Writing Archive</a></li>
           <li><a href="../rss.xml">RSS Feed</a></li>
         </ul>
@@ -673,31 +722,54 @@ def build() -> None:
     )
 
     # 6. RSS Feed (dist/rss.xml)
-    rss_items = []
-    for w in writings:
-        rss_items.append(
-            f"""  <item>
-    <title>{html.escape(w['title'])}</title>
-    <link>/writing/{w['slug']}.html</link>
-    <pubDate>{w['date']}</pubDate>
-    <description>{html.escape(w['excerpt'])}</description>
+    site_url = site.get("url", "").rstrip("/")
+
+    def abs_url(path: str) -> str:
+        return f"{site_url}{path}" if site_url else path
+
+    feed_entries = [
+        {
+            "date": w["date"],
+            "title": w["title"],
+            "link": abs_url(f"/writing/{w['slug']}.html"),
+            "description": w["excerpt"],
+        }
+        for w in writings
+    ] + [
+        {
+            "date": u["date"],
+            "title": f"Semestra {u['version']}: {u['title']}",
+            "link": abs_url(f"/semestra/index.html#{u['slug']}"),
+            "description": u["highlights"],
+        }
+        for u in updates
+    ]
+    feed_entries.sort(key=lambda item: item["date"], reverse=True)
+
+    permalink_attr = "true" if site_url else "false"
+    rss_items = [
+        f"""  <item>
+    <title>{xml_escape(item['title'])}</title>
+    <link>{xml_escape(item['link'])}</link>
+    <guid isPermaLink="{permalink_attr}">{xml_escape(item['link'])}</guid>
+    <pubDate>{format_rfc822_date(item['date'])}</pubDate>
+    <description>{xml_escape(item['description'])}</description>
   </item>"""
-        )
-    for u in updates:
-        rss_items.append(
-            f"""  <item>
-    <title>Semestra {html.escape(u['version'])}: {html.escape(u['title'])}</title>
-    <link>/semestra/index.html#{u['slug']}</link>
-    <pubDate>{u['date']}</pubDate>
-    <description>{html.escape(u['highlights'])}</description>
-  </item>"""
-        )
+        for item in feed_entries
+    ]
+
+    channel_link = f"  <link>{xml_escape(site_url)}/</link>\n" if site_url else ""
+    atom_link = (
+        f'  <atom:link href="{xml_escape(site_url)}/rss.xml" rel="self" type="application/rss+xml" />\n'
+        if site_url
+        else ""
+    )
 
     rss_xml = f"""<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-  <title>{html.escape(site['name'])}</title>
-  <description>{html.escape(site['tagline'])}</description>
+  <title>{xml_escape(site['name'])}</title>
+{channel_link}{atom_link}  <description>{xml_escape(site['tagline'])}</description>
 {chr(10).join(rss_items)}
 </channel>
 </rss>

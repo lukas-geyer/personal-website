@@ -1,0 +1,29 @@
+{
+  "name": "Lukas Geyer",
+  "handle": "lukasgeyer",
+  "location": "Writing & Building Software",
+  "tagline": "Short fiction, longform notes, and development dispatches for Semestra.",
+  "intro": "I write stories and build thoughtful software for iOS. This is a quiet place for longform fiction, essays on craft, and release notes for Semestra—a smart study planner for students.",
+  "email": "hello@example.com",
+  "links": [
+    { "label": "GitHub", "url": "https://github.com" },
+    { "label": "App Store", "url": "https://apps.apple.com/app/semestra-smart-study-planner/id6736848037" },
+    { "label": "RSS", "url": "/rss.xml" }
+  ],
+  "newsletter": {
+    "heading": "Letters & New Stories",
+    "description": "Receive new short stories, longform essays, and occasional Semestra release notes by email.",
+    "action_url": "netlify",
+    "email_field": "email",
+    "button_label": "Subscribe",
+    "footnote": "Sent only when something new is published. Unsubscribe anytime."
+  },
+  "semestra": {
+    "name": "Semestra",
+    "subtitle": "Smart Study Planner for iPhone, iPad & Mac",
+    "summary": "Semestra turns university timetables and syllabi into calm, adaptive study schedules—recalculating automatically when lectures shift and keeping exams within reach.",
+    "app_store_url": "https://apps.apple.com/app/semestra-smart-study-planner/id6736848037",
+    "platforms": "iPhone · iPad · Mac (iCloud Sync)",
+    "pricing": "Free with optional Semestra Plus"
+  }
+}

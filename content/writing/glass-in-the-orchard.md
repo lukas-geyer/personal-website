@@ -4,7 +4,6 @@ subtitle: A fragment about late August heat and an abandoned greenhouse behind t
 kind: story
 date: 2026-07-11
 reading_time: 4 min
-featured: false
 excerpt: By four in the afternoon the iron frames of the greenhouse were too hot to touch, and wasps drifted lazily among the wild fennel that had pushed through the flagstones.
 ---
 

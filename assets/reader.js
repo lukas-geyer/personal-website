@@ -3,40 +3,41 @@
   const THEMES = ['paper', 'sepia', 'dusk'];
   const LABELS = { paper: 'Paper', sepia: 'Sepia', dusk: 'Dusk' };
 
-  function getSavedTheme() {
-    try {
-      return localStorage.getItem('site-theme') || 'paper';
-    } catch (_) {
-      return 'paper';
-    }
+  // Marks one button in a group as the pressed one (class for looks, aria-pressed for screen readers).
+  function setPressed(btn, on) {
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', String(on));
   }
 
-  function applyTheme(theme) {
-    const valid = THEMES.includes(theme) ? theme : 'paper';
-    root.setAttribute('data-theme', valid);
-    try { localStorage.setItem('site-theme', valid); } catch (_) {}
-
-    const navBtn = document.getElementById('themeCycleBtn');
-    if (navBtn) navBtn.textContent = 'Theme: ' + LABELS[valid];
-
-    document.querySelectorAll('[data-set-theme]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.setTheme === valid);
-    });
-  }
-
-  applyTheme(getSavedTheme());
-
+  // Theme. The initial theme is set by the inline script in <head>; this only reflects and changes it.
   const navBtn = document.getElementById('themeCycleBtn');
+  const themeBtns = document.querySelectorAll('[data-set-theme]');
+
+  function currentTheme() {
+    const theme = root.getAttribute('data-theme');
+    return THEMES.includes(theme) ? theme : 'paper';
+  }
+
+  function showTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    if (navBtn) navBtn.textContent = 'Theme: ' + LABELS[theme];
+    themeBtns.forEach((btn) => setPressed(btn, btn.dataset.setTheme === theme));
+  }
+
+  function chooseTheme(theme) {
+    showTheme(theme);
+    try { localStorage.setItem('site-theme', theme); } catch (_) {}
+  }
+
+  showTheme(currentTheme());
+
   if (navBtn) {
     navBtn.addEventListener('click', () => {
-      const current = root.getAttribute('data-theme') || 'paper';
-      const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
-      applyTheme(next);
+      chooseTheme(THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length]);
     });
   }
-
-  document.querySelectorAll('[data-set-theme]').forEach((btn) => {
-    btn.addEventListener('click', () => applyTheme(btn.dataset.setTheme));
+  themeBtns.forEach((btn) => {
+    btn.addEventListener('click', () => chooseTheme(btn.dataset.setTheme));
   });
 
   // Writing Filter Tabs (Home & Writing Index)
@@ -44,8 +45,7 @@
   const entries = document.querySelectorAll('.writing-entry');
   filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      filterBtns.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
+      filterBtns.forEach((b) => setPressed(b, b === btn));
       const kind = btn.dataset.kind;
       entries.forEach((el) => {
         el.classList.toggle('hidden', kind !== 'all' && el.dataset.kind !== kind);
@@ -77,7 +77,7 @@
     if (focusBtn) {
       focusBtn.addEventListener('click', () => {
         const active = document.body.classList.toggle('focus-mode');
-        focusBtn.classList.toggle('active', active);
+        setPressed(focusBtn, active);
         focusBtn.textContent = active ? 'Focus: On' : 'Focus';
       });
     }
@@ -140,18 +140,14 @@
 
       let rects = '';
       st.blocks.forEach((b) => {
-        const fill =
+        const color =
           b.type === 'exam' ? 'var(--accent)' :
-          b.type === 'rebalanced' ? 'var(--app-accent)' :
-          b.type === 'plan' ? 'var(--app-accent)' : 'currentColor';
+          b.type === 'fixed' ? 'currentColor' : 'var(--app-accent)';
         const fillOp =
           b.type === 'fixed' ? '0.12' :
           b.type === 'plan' ? '0.16' : '0.24';
-        const stroke =
-          b.type === 'exam' ? 'var(--accent)' :
-          b.type === 'fixed' ? 'currentColor' : 'var(--app-accent)';
         const strokeOp = b.type === 'fixed' ? '0.25' : '0.85';
-        rects += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3" fill="${fill}" fill-opacity="${fillOp}" stroke="${stroke}" stroke-opacity="${strokeOp}" stroke-width="1"/>`;
+        rects += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3" fill="${color}" fill-opacity="${fillOp}" stroke="${color}" stroke-opacity="${strokeOp}" stroke-width="1"/>`;
         rects += `<text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 3}" text-anchor="middle" fill="currentColor" font-size="9" font-family="-apple-system, sans-serif">${b.label}</text>`;
       });
 
@@ -164,8 +160,7 @@
 
     shiftBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        shiftBtns.forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
+        shiftBtns.forEach((b) => setPressed(b, b === btn));
         renderState(btn.dataset.semestraState);
       });
     });
@@ -173,48 +168,30 @@
     renderState('before');
   }
 
-  // Newsletter Form (handles preview and Netlify AJAX submission cleanly)
-  document.querySelectorAll('.newsletter-form').forEach((form) => {
+  // Newsletter Form: Netlify Forms are submitted in the background so the reader stays on the page.
+  // Forms pointing at another provider (action URL set in site.json) submit normally.
+  document.querySelectorAll('.newsletter-form[data-newsletter-mode="netlify"]').forEach((form) => {
     form.addEventListener('submit', async (e) => {
-      const mode = form.dataset.newsletterMode;
       const input = form.querySelector('input[type="email"]');
       const status = form.parentElement.querySelector('.newsletter-status');
       if (!input || !input.value.trim()) return;
 
-      if (mode === 'demo') {
-        e.preventDefault();
-        if (status) {
-          status.textContent = 'Preview confirmation for ' + input.value.trim() + ' — set newsletter.action_url in site.json to connect Buttondown, Kit, or Netlify Forms.';
-        }
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(new FormData(form)).toString()
+        });
+        if (!res.ok) throw new Error('Request failed');
+        if (status) status.textContent = 'Subscribed — thank you for reading.';
         input.value = '';
-        return;
-      }
-
-      if (mode === 'netlify') {
-        e.preventDefault();
-        if (window.location.protocol === 'about:' || window.location.protocol === 'file:') {
-          if (status) {
-            status.textContent = 'Preview confirmation for ' + input.value.trim() + ' — live Netlify Forms submission activates once deployed.';
-          }
-          input.value = '';
-          return;
-        }
-        const btn = form.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = true;
-        try {
-          const res = await fetch('/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(new FormData(form)).toString()
-          });
-          if (!res.ok) throw new Error('Request failed');
-          if (status) status.textContent = 'Subscribed — thank you for reading.';
-          input.value = '';
-        } catch (_) {
-          if (status) status.textContent = 'Could not submit right now. Please try again in a moment.';
-        } finally {
-          if (btn) btn.disabled = false;
-        }
+      } catch (_) {
+        if (status) status.textContent = 'Could not submit right now. Please try again in a moment.';
+      } finally {
+        if (btn) btn.disabled = false;
       }
     });
   });

@@ -1,8 +1,7 @@
 {
   "name": "Lukas Geyer",
-  "handle": "lukasgeyer",
   "url": "https://lukasgeyer.com",
-  "location": "Writing & Building Software",
+  "kicker":"Writing & Building Software",
   "tagline": "Short fiction, longform notes, and development dispatches for Semestra.",
   "intro": "I write stories and build thoughtful software for iOS. This is a quiet place for longform fiction, essays on craft, and release notes for Semestra—a smart study planner for students.",
   "email": "lukas.geyer03@icloud.com",

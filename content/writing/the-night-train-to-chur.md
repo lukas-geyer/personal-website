@@ -4,7 +4,6 @@ subtitle: On missed connections, borrowed coats, and the quiet hour before midni
 kind: story
 date: 2026-10-18
 reading_time: 6 min
-featured: true
 excerpt: The platform clock jumped from 21:44 to 21:45 with a metallic click you could hear through your boots, and the air smelled faintly of wet brake dust and roasted chestnuts.
 ---
 

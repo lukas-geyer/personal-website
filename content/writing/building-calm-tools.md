@@ -4,7 +4,6 @@ subtitle: Notes on writing fiction at dawn, shipping iOS updates at night, and k
 kind: essay
 date: 2026-09-24
 reading_time: 5 min
-featured: true
 excerpt: There is an unexpected kinship between editing a short story and trimming an interface down to what a student actually needs two days before an exam.
 ---
 

@@ -4,6 +4,16 @@
   command = "python3 build.py"
   publish = "dist"
 
+# The Content-Security-Policy header is written to dist/_headers by build.py,
+# because it contains a hash of the inline theme script.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
 [[headers]]
   for = "/rss.xml"
   [headers.values]

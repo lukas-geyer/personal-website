@@ -8,8 +8,8 @@ A quiet, static longform writing site and release log for **Semestra**, compiled
 - `content/writing/*.md` — Short stories (`kind: story`) and longform essays (`kind: essay`).
 - `content/semestra/*.md` — Versioned Semestra iOS release notes and development dispatches.
 - `assets/` — Shared stylesheet (`styles.css`) and reader controls (`reader.js`). Every file in this folder is copied to the site root.
-- `build.py` — Static site builder outputting everything into `dist/` (pages, RSS feed, sitemap, favicon, 404 page, and the `_headers` file with the Content-Security-Policy).
-- `netlify.toml` — Netlify build command and security headers.
+- `build.py` — Static site builder outputting everything into `dist/` (pages, RSS feed, sitemap, favicon, 404 page, `CNAME`, and `.nojekyll`).
+- `.github/workflows/pages.yml` — GitHub Actions workflow that builds and deploys `dist/` to GitHub Pages on every push to `main`.
 
 `dist/` is build output: never edit it by hand, and it is not stored in git.
 
@@ -74,13 +74,10 @@ Then open `http://localhost:8000`. Opening the files in `dist/` directly by doub
 
 In `site.json`, set `newsletter.action_url`:
 
-- **Netlify Forms (current setup):** `"action_url": "netlify"`. Form detection must be enabled for the site in the Netlify dashboard (Forms).
+- **No signup form (current setup):** leave `action_url` empty (`""`).
 - **Buttondown:** `"action_url": "https://buttondown.com/api/emails/embed-subscribe/YOUR_HANDLE"`.
-- **Other providers (Kit, Mailchimp, etc.):** Paste the form action URL and adjust `"email_field"` if needed.
-- **No signup form:** leave `action_url` empty.
+- **Other providers (Kit, Mailchimp, Formspree, etc.):** Paste the form action URL and adjust `"email_field"` if needed.
 
 ## Hosting & Deployment
 
-The site is hosted on **Netlify**, connected to this git repository. Pushing a commit is all it takes: Netlify runs `python3 build.py` and publishes `dist/` (both configured in `netlify.toml`).
-
-Security headers live in two places: the fixed ones in `netlify.toml`, and the Content-Security-Policy in `dist/_headers`, which `build.py` regenerates on every build because it contains a fingerprint of the small theme script in each page's `<head>`. The policy only allows files served by this site itself, so if you ever add something loaded from another address (web fonts, analytics, embedded media), extend the policy in `build.py` as well.
+The site is hosted on **GitHub Pages** at `https://lukasgeyer.com`. Pushing a commit to `main` triggers `.github/workflows/pages.yml`, which runs `python3 build.py` and deploys `dist/` automatically.

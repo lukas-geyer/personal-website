@@ -13,7 +13,7 @@
   "newsletter": {
     "heading": "Letters & New Stories",
     "description": "Receive new short stories, longform essays, and occasional Semestra release notes by email.",
-    "action_url": "netlify",
+    "action_url": "",
     "email_field": "email",
     "button_label": "Subscribe",
     "footnote": "Sent only when something new is published. Unsubscribe anytime."

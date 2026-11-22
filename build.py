@@ -730,7 +730,7 @@ def build() -> None:
         content_html=about_html,
     )
 
-    # 6. Not-found page (dist/404.html — Netlify serves it for unknown URLs)
+    # 6. Not-found page (dist/404.html — GitHub Pages serves it for unknown URLs)
     write_page(
         "404.html",
         title=f"Page not found — {site['name']}",
@@ -816,27 +816,12 @@ def build() -> None:
         robots += f"Sitemap: {site_url}/sitemap.xml\n"
     (DIST / "robots.txt").write_text(robots, encoding="utf-8")
 
-    # 9. Content-Security-Policy (dist/_headers, read by Netlify).
-    # Only this site's own files may load; the one inline script is allowed by its hash.
-    script_hash = base64.b64encode(hashlib.sha256(THEME_SCRIPT.encode("utf-8")).digest()).decode("ascii")
-    form_targets = "'self'"
-    action = (site.get("newsletter") or {}).get("action_url", "").strip()
-    if action.startswith("http"):
-        parts = urllib.parse.urlsplit(action)
-        form_targets += f" {parts.scheme}://{parts.netloc}"
-    csp = "; ".join(
-        [
-            "default-src 'none'",
-            f"script-src 'self' 'sha256-{script_hash}'",
-            "style-src 'self'",
-            "img-src 'self'",
-            "connect-src 'self'",
-            f"form-action {form_targets}",
-            "base-uri 'none'",
-            "frame-ancestors 'none'",
-        ]
-    )
-    (DIST / "_headers").write_text(f"/*\n  Content-Security-Policy: {csp}\n", encoding="utf-8")
+    # 9. GitHub Pages metadata (dist/.nojekyll and dist/CNAME)
+    (DIST / ".nojekyll").write_text("", encoding="utf-8")
+    if site_url:
+        host = urllib.parse.urlsplit(site_url).hostname
+        if host:
+            (DIST / "CNAME").write_text(f"{host}\n", encoding="utf-8")
 
     print(f"Built {len(writings)} stories/essays and {len(updates)} Semestra updates into {DIST}")
 

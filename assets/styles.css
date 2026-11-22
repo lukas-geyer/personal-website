@@ -368,24 +368,6 @@ body.focus-mode .masthead:hover {
   color: #f6f3ec;
 }
 
-.app-hero {
-  max-width: 68ch;
-  margin-bottom: 56px;
-}
-
-.app-status {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 3px 11px;
-  margin-bottom: 18px;
-}
-
 .app-title {
   font-family: var(--sans);
   font-size: 21px;
@@ -428,6 +410,15 @@ body.focus-mode .masthead:hover {
 }
 
 .btn-solid:hover { opacity: 0.86; }
+
+.btn-solid.btn-disabled {
+  background: var(--surface);
+  color: var(--faint);
+  border: 1px solid var(--rule);
+  cursor: not-allowed;
+  pointer-events: none;
+  user-select: none;
+}
 
 .btn-outline {
   border: 1px solid var(--rule);
@@ -691,6 +682,10 @@ body.focus-mode .masthead:hover {
   padding-bottom: 56px;
   border-bottom: 1px solid var(--rule);
   margin-bottom: 56px;
+}
+
+.semestra-hero--single {
+  grid-template-columns: minmax(0, 62ch);
 }
 
 .semestra-hero .app-title {

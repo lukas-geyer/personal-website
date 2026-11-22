@@ -20,6 +20,8 @@ import urllib.parse
 ROOT = pathlib.Path(__file__).parent
 CONTENT_WRITING = ROOT / "content" / "writing"
 CONTENT_SEMESTRA = ROOT / "content" / "semestra"
+CONTENT_PARADEISER = ROOT / "content" / "paradeiser"
+CONTENT_MUNINN = ROOT / "content" / "muninn"
 ASSETS = ROOT / "assets"
 DIST = ROOT / "dist"
 
@@ -227,13 +229,48 @@ def load_writings() -> list[dict]:
     return items
 
 
-def load_semestra_updates() -> list[dict]:
-    items = load_entries(CONTENT_SEMESTRA)
+def load_app_updates(folder: pathlib.Path, base_path: str) -> list[dict]:
+    if not folder.exists():
+        return []
+    items = load_entries(folder)
     for u in items:
-        u["url"] = f"/semestra/#{u['slug']}"
+        u["url"] = f"{base_path}#{u['slug']}"
         for key, default in (("version", "1.0"), ("platform", "iOS"), ("highlights", "")):
             u.setdefault(key, default)
     return items
+
+
+def load_semestra_updates() -> list[dict]:
+    return load_app_updates(CONTENT_SEMESTRA, "/semestra/")
+
+
+def render_changelog_section(updates: list[dict]) -> str:
+    release_label = "1 Release" if len(updates) == 1 else f"{len(updates)} Releases"
+    changelog_blocks = "".join(
+        f"""<article class="changelog-entry" id="{u['slug']}">
+  <aside class="changelog-aside">
+    <div class="changelog-version">Version {html.escape(u['version'])}</div>
+    <div>{time_tag(u['date'])}</div>
+    <div class="changelog-platform">{html.escape(u['platform'])}</div>
+  </aside>
+  <div>
+    <h2 class="changelog-title">{html.escape(u['title'])}</h2>
+    <div class="changelog-body">
+      {u['body_html']}
+    </div>
+  </div>
+</article>"""
+        for u in updates
+    )
+    return f"""
+    <section id="changelog">
+      <div class="section-bar">
+        <span class="section-label">Development Updates &amp; Release Notes</span>
+        <span class="section-label">{release_label}</span>
+      </div>
+      {changelog_blocks}
+    </section>
+    """
 
 
 # ---------------------------------------------------------------- Template pieces
@@ -441,6 +478,8 @@ def build() -> None:
     site = json.loads((ROOT / "site.json").read_text(encoding="utf-8"))
     writings = load_writings()
     updates = load_semestra_updates()
+    paradeiser_updates = load_app_updates(CONTENT_PARADEISER, "/paradeiser/")
+    muninn_updates = load_app_updates(CONTENT_MUNINN, "/muninn/")
     sem = site["semestra"]
     site_url = site.get("url", "").rstrip("/")
 
@@ -596,23 +635,6 @@ def build() -> None:
         )
 
     # 4. Semestra Product & Changelog Page (dist/semestra/index.html)
-    changelog_blocks = "".join(
-        f"""<article class="changelog-entry" id="{u['slug']}">
-  <aside class="changelog-aside">
-    <div class="changelog-version">Version {html.escape(u['version'])}</div>
-    <div>{time_tag(u['date'])}</div>
-    <div class="changelog-platform">{html.escape(u['platform'])}</div>
-  </aside>
-  <div>
-    <h2 class="changelog-title">{html.escape(u['title'])}</h2>
-    <div class="changelog-body">
-      {u['body_html']}
-    </div>
-  </div>
-</article>"""
-        for u in updates
-    )
-
     support_email = html.escape(sem.get("support_email", "").strip())
     support_link = f'<a href="mailto:{support_email}">{support_email}</a>'
     support_meta_html = f"<div>Support: {support_link}</div>" if support_email else ""
@@ -663,13 +685,7 @@ def build() -> None:
       </div>
     </section>
 
-    <section id="changelog">
-      <div class="section-bar">
-        <span class="section-label">Development Updates &amp; Release Notes</span>
-        <span class="section-label">{len(updates)} Releases</span>
-      </div>
-      {changelog_blocks}
-    </section>
+    {render_changelog_section(updates)}
 
     {render_newsletter(site, compact=True)}
     """
@@ -686,17 +702,18 @@ def build() -> None:
     paradeiser = site["paradeiser"]
     paradeiser_email = html.escape(paradeiser.get("support_email", site["email"]).strip())
     paradeiser_html = f"""
-    <section class="app-hero">
-      <div class="app-status">{html.escape(paradeiser['status'])}</div>
-      {app_header(paradeiser, title_tag="h1", icon=PARADEISER_ICON, mark_class="app-mark--paradeiser")}
-      <p class="intro-copy">{html.escape(paradeiser['summary'])}</p>
-      <div class="action-row">
-        <a href="/paradeiser/privacy/" class="btn-outline">Privacy Policy</a>
-        <a href="mailto:{paradeiser_email}" class="btn-outline">Contact &amp; Feedback</a>
-      </div>
-      <div class="semestra-meta">
-        <div>{html.escape(paradeiser['platforms'])} &middot; {html.escape(paradeiser['pricing'])}</div>
-        <div>Support: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a></div>
+    <section class="semestra-hero semestra-hero--single">
+      <div>
+        {app_header(paradeiser, title_tag="h1", icon=PARADEISER_ICON, mark_class="app-mark--paradeiser")}
+        <p class="intro-copy">{html.escape(paradeiser['summary'])}</p>
+        <div class="action-row">
+          <span class="btn-solid btn-disabled" aria-disabled="true">View on App Store &#8599;</span>
+          <a href="#changelog" class="btn-outline">Read Changelog</a>
+        </div>
+        <div class="semestra-meta">
+          <div>{html.escape(paradeiser['platforms'])} &middot; {html.escape(paradeiser['pricing'])}</div>
+          <div>Support: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a> &middot; <a href="/paradeiser/privacy/">Privacy Policy</a></div>
+        </div>
       </div>
     </section>
 
@@ -718,6 +735,10 @@ def build() -> None:
         <p>Built natively with SwiftUI, Liquid Glass, and on-device SwiftData—available in English and German, and architected from day one for a future macOS companion app with iCloud sync.</p>
       </div>
     </section>
+
+    {render_changelog_section(paradeiser_updates)}
+
+    {render_newsletter(site, compact=True)}
     """
     write_page(
         "paradeiser/index.html",
@@ -773,17 +794,18 @@ def build() -> None:
     muninn = site["muninn"]
     muninn_email = html.escape(muninn.get("support_email", site["email"]).strip())
     muninn_html = f"""
-    <section class="app-hero">
-      <div class="app-status">{html.escape(muninn['status'])}</div>
-      {app_header(muninn, title_tag="h1", icon=MUNINN_ICON, mark_class="app-mark--muninn")}
-      <p class="intro-copy">{html.escape(muninn['summary'])}</p>
-      <div class="action-row">
-        <a href="/muninn/privacy/" class="btn-outline">Privacy Policy</a>
-        <a href="mailto:{muninn_email}" class="btn-outline">Contact &amp; Feedback</a>
-      </div>
-      <div class="semestra-meta">
-        <div>{html.escape(muninn['platforms'])} &middot; {html.escape(muninn['pricing'])}</div>
-        <div>Support: <a href="mailto:{muninn_email}">{muninn_email}</a></div>
+    <section class="semestra-hero semestra-hero--single">
+      <div>
+        {app_header(muninn, title_tag="h1", icon=MUNINN_ICON, mark_class="app-mark--muninn")}
+        <p class="intro-copy">{html.escape(muninn['summary'])}</p>
+        <div class="action-row">
+          <span class="btn-solid btn-disabled" aria-disabled="true">View on App Store &#8599;</span>
+          <a href="#changelog" class="btn-outline">Read Changelog</a>
+        </div>
+        <div class="semestra-meta">
+          <div>{html.escape(muninn['platforms'])} &middot; {html.escape(muninn['pricing'])}</div>
+          <div>Support: <a href="mailto:{muninn_email}">{muninn_email}</a> &middot; <a href="/muninn/privacy/">Privacy Policy</a></div>
+        </div>
       </div>
     </section>
 
@@ -805,6 +827,10 @@ def build() -> None:
         <p>Named after Odin's raven of memory, Muninn keeps spaced repetition fast, focused, and free on every platform, with an optional Plus tier for extras beyond core flashcards.</p>
       </div>
     </section>
+
+    {render_changelog_section(muninn_updates)}
+
+    {render_newsletter(site, compact=True)}
     """
     write_page(
         "muninn/index.html",
@@ -928,18 +954,39 @@ def build() -> None:
     )
 
     # 7. RSS Feed (dist/rss.xml)
-    feed_entries = [
-        {"date": w["date"], "title": w["title"], "link": site_url + w["url"], "description": w["excerpt"]}
-        for w in writings
-    ] + [
-        {
-            "date": u["date"],
-            "title": f"Semestra {u['version']}: {u['title']}",
-            "link": site_url + u["url"],
-            "description": u["highlights"],
-        }
-        for u in updates
-    ]
+    feed_entries = (
+        [
+            {"date": w["date"], "title": w["title"], "link": site_url + w["url"], "description": w["excerpt"]}
+            for w in writings
+        ]
+        + [
+            {
+                "date": u["date"],
+                "title": f"Semestra {u['version']}: {u['title']}",
+                "link": site_url + u["url"],
+                "description": u["highlights"],
+            }
+            for u in updates
+        ]
+        + [
+            {
+                "date": u["date"],
+                "title": f"Paradeiser {u['version']}: {u['title']}",
+                "link": site_url + u["url"],
+                "description": u["highlights"],
+            }
+            for u in paradeiser_updates
+        ]
+        + [
+            {
+                "date": u["date"],
+                "title": f"Muninn {u['version']}: {u['title']}",
+                "link": site_url + u["url"],
+                "description": u["highlights"],
+            }
+            for u in muninn_updates
+        ]
+    )
     feed_entries.sort(key=lambda item: item["date"], reverse=True)
 
     permalink_attr = "true" if site_url else "false"
@@ -984,9 +1031,9 @@ def build() -> None:
         sitemap_pages += [(w["url"], w["date"]) for w in writings]
         sitemap_pages += [
             ("/semestra/", updates[0]["date"] if updates else None),
-            ("/paradeiser/", None),
+            ("/paradeiser/", paradeiser_updates[0]["date"] if paradeiser_updates else None),
             ("/paradeiser/privacy/", None),
-            ("/muninn/", None),
+            ("/muninn/", muninn_updates[0]["date"] if muninn_updates else None),
             ("/muninn/privacy/", None),
             ("/about/", None),
         ]

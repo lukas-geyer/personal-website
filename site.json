@@ -26,5 +26,23 @@
     "support_email": "hallo@semestra.at",
     "platforms": "iPhone · iPad · Mac (iCloud Sync)",
     "pricing": "Free with optional Semestra Plus"
+  },
+  "paradeiser": {
+    "name": "Paradeiser",
+    "subtitle": "Calm Interval Focus Timer for iPhone & iPad",
+    "status": "In Development · v1.0",
+    "summary": "Paradeiser is a quiet, tactile interval timer for deep work and study—set custom focus blocks and breaks (like 3 × 45 min with 15 min breaks in between), follow along on your Lock Screen, and track when and how long you focus.",
+    "support_email": "lukas.geyer03@icloud.com",
+    "platforms": "iPhone · iPad · macOS (planned)",
+    "pricing": "Free · Optional Paradeiser Plus (€1,99/mo)"
+  },
+  "muninn": {
+    "name": "Muninn",
+    "subtitle": "Spaced-Repetition Flashcards Built on Rust & FSRS-7",
+    "status": "In Development · Phase 1 (Core)",
+    "summary": "A spaced-repetition flashcard app as capable as Anki without being a clone of it: one shared Rust core with an FSRS-7 scheduler and lossless Anki deck import, wrapped in fast native apps starting with iOS and macOS.",
+    "support_email": "lukas.geyer03@icloud.com",
+    "platforms": "iOS · macOS · Android · Desktop (planned)",
+    "pricing": "Free on every platform · Optional Plus tier"
   }
 }

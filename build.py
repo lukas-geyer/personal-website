@@ -42,6 +42,17 @@ SEMESTRA_ICON = f"""<svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
       {ICON_SHAPES}
     </svg>"""
 
+PARADEISER_ICON = """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="12" cy="14" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M9 6.2L10.6 7.4L12.3 5.2L13.8 7.5L15.7 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>"""
+
+MUNINN_ICON = """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="4" y="6.5" width="13" height="11" rx="2.2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8.5 6.5V5.2C8.5 4.5 9 4 9.7 4H18.8C19.5 4 20 4.5 20 5.2V14.3C20 15 19.5 15.5 18.8 15.5H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="7.5" y1="11.5" x2="13.5" y2="11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>"""
+
 FAVICON_SVG = f"""<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="32" height="32" rx="8" fill="#1F4486"/>
   <g transform="translate(4 4)" color="#F6F3EC">
@@ -265,12 +276,13 @@ FILTER_TABS = """<div class="filter-tabs" role="group" aria-label="Filter writin
         </div>"""
 
 
-def app_header(sem: dict, title_tag: str = "div") -> str:
+def app_header(app: dict, title_tag: str = "div", icon: str = SEMESTRA_ICON, mark_class: str = "") -> str:
+    cls = f"app-mark {mark_class}".strip()
     return f"""<div class="app-header">
-          <div class="app-mark">{SEMESTRA_ICON}</div>
+          <div class="{cls}">{icon}</div>
           <div>
-            <{title_tag} class="app-title">{html.escape(sem['name'])}</{title_tag}>
-            <div class="app-sub">{html.escape(sem['subtitle'])}</div>
+            <{title_tag} class="app-title">{html.escape(app['name'])}</{title_tag}>
+            <div class="app-sub">{html.escape(app['subtitle'])}</div>
           </div>
         </div>"""
 
@@ -398,6 +410,8 @@ def page_layout(
         <nav class="nav-links" aria-label="Primary">
           <a href="/writing/"{nav_attrs("writing")}>Writing</a>
           <a href="/semestra/"{nav_attrs("semestra")}>Semestra</a>
+          <a href="/paradeiser/"{nav_attrs("paradeiser")}>Paradeiser</a>
+          <a href="/muninn/"{nav_attrs("muninn")}>Muninn</a>
           <a href="/about/"{nav_attrs("about")}>About</a>
         </nav>
         <button class="theme-toggle" id="themeCycleBtn" type="button">Theme: Paper</button>
@@ -432,8 +446,8 @@ def build() -> None:
 
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(ASSETS, DIST)  # everything in assets/ is published as-is
-    for folder in ("writing", "semestra", "about"):
-        (DIST / folder).mkdir()
+    for folder in ("writing", "semestra", "paradeiser", "paradeiser/privacy", "muninn", "muninn/privacy", "about"):
+        (DIST / folder).mkdir(parents=True, exist_ok=True)
     (DIST / "favicon.svg").write_text(FAVICON_SVG, encoding="utf-8")
 
     def write_page(file: str, **kwargs) -> None:
@@ -668,6 +682,174 @@ def build() -> None:
         description=sem["summary"],
     )
 
+    # 4b. Paradeiser Product & Privacy Pages (dist/paradeiser/index.html & privacy)
+    paradeiser = site["paradeiser"]
+    paradeiser_email = html.escape(paradeiser.get("support_email", site["email"]).strip())
+    paradeiser_html = f"""
+    <section class="app-hero">
+      <div class="app-status">{html.escape(paradeiser['status'])}</div>
+      {app_header(paradeiser, title_tag="h1", icon=PARADEISER_ICON, mark_class="app-mark--paradeiser")}
+      <p class="intro-copy">{html.escape(paradeiser['summary'])}</p>
+      <div class="action-row">
+        <a href="/paradeiser/privacy/" class="btn-outline">Privacy Policy</a>
+        <a href="mailto:{paradeiser_email}" class="btn-outline">Contact &amp; Feedback</a>
+      </div>
+      <div class="semestra-meta">
+        <div>{html.escape(paradeiser['platforms'])} &middot; {html.escape(paradeiser['pricing'])}</div>
+        <div>Support: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a></div>
+      </div>
+    </section>
+
+    <section class="capabilities-grid" aria-label="Paradeiser features">
+      <div class="cap-item">
+        <h2>Custom Intervals &amp; Presets</h2>
+        <p>Configure any combination of focus blocks and breaks with one-minute precision—such as three 45-minute study sessions with 15-minute breaks in between—and switch presets in one tap.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Lock Screen &amp; Dynamic Island</h2>
+        <p>Follow your active interval on the Lock Screen and Dynamic Island via native Live Activities, backed by a wall-clock timer that stays accurate across backgrounding and restarts.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Focus Statistics &amp; History</h2>
+        <p>Track when you focused and for how long with daily and 30-day charts, streaks, and a complete day-by-day session timeline with Paradeiser Plus.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Quiet, Local &amp; Bilingual</h2>
+        <p>Built natively with SwiftUI, Liquid Glass, and on-device SwiftData—available in English and German, and architected from day one for a future macOS companion app with iCloud sync.</p>
+      </div>
+    </section>
+    """
+    write_page(
+        "paradeiser/index.html",
+        title=f"Paradeiser — {site['name']}",
+        path="/paradeiser/",
+        active_nav="paradeiser",
+        content_html=paradeiser_html,
+        description=paradeiser["summary"],
+    )
+
+    paradeiser_privacy_html = f"""
+    <article class="reader-container">
+      <div class="reader-controls">
+        <a href="/paradeiser/">&larr; Back to Paradeiser</a>
+      </div>
+      <header class="article-header">
+        <div class="article-meta-line">
+          <span class="kind-tag">Privacy Policy</span>
+          <span>&middot;</span>
+          <span>Paradeiser</span>
+        </div>
+        <h1 class="article-title">Privacy Policy</h1>
+        <p class="article-subtitle">Paradeiser is designed to keep your focus data private and on your device.</p>
+      </header>
+      <div class="prose-body">
+        <h2>Data We Collect</h2>
+        <p><strong>None.</strong> Paradeiser does not collect, sell, or share personal data, does not require an account, and does not include third-party analytics or advertising SDKs.</p>
+
+        <h2>On-Device Storage</h2>
+        <p>Your custom timer presets, preferences, and focus session history are stored locally on your device using Apple's SwiftData and UserDefaults frameworks. If iCloud Sync is enabled in a future release, your data will sync strictly through your private Apple iCloud account.</p>
+
+        <h2>Subscriptions &amp; Purchases</h2>
+        <p>Optional <strong>Paradeiser Plus</strong> subscriptions are processed directly by Apple through StoreKit and the App Store. We never receive or store your payment information. You can manage or cancel your subscription at any time in your Apple Account settings.</p>
+
+        <h2>Notifications</h2>
+        <p>If you grant notification permission, Paradeiser schedules local notifications exclusively on your device to alert you when focus or break intervals finish.</p>
+
+        <h2>Contact</h2>
+        <p>If you have any questions about this privacy policy, email <a href="mailto:{paradeiser_email}">{paradeiser_email}</a>.</p>
+      </div>
+    </article>
+    """
+    write_page(
+        "paradeiser/privacy/index.html",
+        title=f"Paradeiser Privacy Policy — {site['name']}",
+        path="/paradeiser/privacy/",
+        active_nav="paradeiser",
+        content_html=paradeiser_privacy_html,
+        description="Privacy Policy for the Paradeiser interval focus timer app.",
+    )
+
+    # 4c. Muninn Product & Privacy Pages (dist/muninn/index.html & privacy)
+    muninn = site["muninn"]
+    muninn_email = html.escape(muninn.get("support_email", site["email"]).strip())
+    muninn_html = f"""
+    <section class="app-hero">
+      <div class="app-status">{html.escape(muninn['status'])}</div>
+      {app_header(muninn, title_tag="h1", icon=MUNINN_ICON, mark_class="app-mark--muninn")}
+      <p class="intro-copy">{html.escape(muninn['summary'])}</p>
+      <div class="action-row">
+        <a href="/muninn/privacy/" class="btn-outline">Privacy Policy</a>
+        <a href="mailto:{muninn_email}" class="btn-outline">Contact &amp; Feedback</a>
+      </div>
+      <div class="semestra-meta">
+        <div>{html.escape(muninn['platforms'])} &middot; {html.escape(muninn['pricing'])}</div>
+        <div>Support: <a href="mailto:{muninn_email}">{muninn_email}</a></div>
+      </div>
+    </section>
+
+    <section class="capabilities-grid" aria-label="Muninn architecture and goals">
+      <div class="cap-item">
+        <h2>Shared Rust Core &amp; FSRS-7</h2>
+        <p>A single Rust core handles the collection model, scheduling math via FSRS-7, file format, and sync—shared identically across every platform through generated native bindings.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Lossless Anki Import &amp; Export</h2>
+        <p>Import existing Anki <code>.apkg</code> decks into clean native card types while preserving original templates so exporting back to Anki remains lossless.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Native on Every Platform</h2>
+        <p>No sluggish web wrappers: starting with a unified SwiftUI codebase for iOS and macOS, followed by native Android, Windows, and Linux clients.</p>
+      </div>
+      <div class="cap-item">
+        <h2>Free Core, Calm Design</h2>
+        <p>Named after Odin's raven of memory, Muninn keeps spaced repetition fast, focused, and free on every platform, with an optional Plus tier for extras beyond core flashcards.</p>
+      </div>
+    </section>
+    """
+    write_page(
+        "muninn/index.html",
+        title=f"Muninn — {site['name']}",
+        path="/muninn/",
+        active_nav="muninn",
+        content_html=muninn_html,
+        description=muninn["summary"],
+    )
+
+    muninn_privacy_html = f"""
+    <article class="reader-container">
+      <div class="reader-controls">
+        <a href="/muninn/">&larr; Back to Muninn</a>
+      </div>
+      <header class="article-header">
+        <div class="article-meta-line">
+          <span class="kind-tag">Privacy Policy</span>
+          <span>&middot;</span>
+          <span>Muninn</span>
+        </div>
+        <h1 class="article-title">Privacy Policy</h1>
+        <p class="article-subtitle">Muninn is built offline-first so your study collections belong to you.</p>
+      </header>
+      <div class="prose-body">
+        <h2>Offline-First by Design</h2>
+        <p>Muninn stores your flashcard decks, notes, and review history locally on your device. Muninn does not include third-party advertising or behavioral tracking.</p>
+
+        <h2>Optional Sync</h2>
+        <p>When optional cross-device sync is introduced, syncing will remain opt-in and used solely to keep your collections up to date across your own devices.</p>
+
+        <h2>Contact</h2>
+        <p>For questions about Muninn or privacy, email <a href="mailto:{muninn_email}">{muninn_email}</a>.</p>
+      </div>
+    </article>
+    """
+    write_page(
+        "muninn/privacy/index.html",
+        title=f"Muninn Privacy Policy — {site['name']}",
+        path="/muninn/privacy/",
+        active_nav="muninn",
+        content_html=muninn_privacy_html,
+        description="Privacy Policy for the Muninn spaced-repetition flashcard app.",
+    )
+
     # 5. About Page (dist/about/index.html)
     github_link = next(
         (
@@ -800,7 +982,14 @@ def build() -> None:
     if site_url:
         sitemap_pages = [("/", None), ("/writing/", None)]
         sitemap_pages += [(w["url"], w["date"]) for w in writings]
-        sitemap_pages += [("/semestra/", updates[0]["date"] if updates else None), ("/about/", None)]
+        sitemap_pages += [
+            ("/semestra/", updates[0]["date"] if updates else None),
+            ("/paradeiser/", None),
+            ("/paradeiser/privacy/", None),
+            ("/muninn/", None),
+            ("/muninn/privacy/", None),
+            ("/about/", None),
+        ]
         sitemap_urls = "\n".join(
             f"  <url><loc>{html.escape(site_url + path)}</loc>"
             + (f"<lastmod>{date.isoformat()}</lastmod>" if date else "")

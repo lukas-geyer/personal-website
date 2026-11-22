@@ -358,6 +358,34 @@ body.focus-mode .masthead:hover {
   flex-shrink: 0;
 }
 
+.app-mark--paradeiser {
+  background: #e61e14;
+  color: #ffffff;
+}
+
+.app-mark--muninn {
+  background: #272d3d;
+  color: #f6f3ec;
+}
+
+.app-hero {
+  max-width: 68ch;
+  margin-bottom: 56px;
+}
+
+.app-status {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px 11px;
+  margin-bottom: 18px;
+}
+
 .app-title {
   font-family: var(--sans);
   font-size: 21px;

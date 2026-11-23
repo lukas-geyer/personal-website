@@ -460,10 +460,17 @@ def page_layout(
     </main>
 
     <footer class="site-footer">
-      <span>&copy; {datetime.date.today().year} {name}</span>
-      <div class="footer-links">
-        <a href="mailto:{html.escape(site['email'])}">Email</a>
-        {footer_links}
+      <div class="footer-top">
+        <span>&copy; {datetime.date.today().year} {name}</span>
+        <div class="footer-links">
+          <a href="mailto:{html.escape(site['email'])}">Email</a>
+          {footer_links}
+        </div>
+      </div>
+      <div class="footer-legal" aria-label="Legal">
+        <a href="/imprint/">Imprint</a>
+        <a href="/semestra/privacy-policy/">Semestra Privacy</a>
+        <a href="/paradeiser/privacy-policy/">Paradeiser Privacy</a>
       </div>
     </footer>
   </div>
@@ -485,7 +492,18 @@ def build() -> None:
 
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(ASSETS, DIST)  # everything in assets/ is published as-is
-    for folder in ("writing", "semestra", "paradeiser", "paradeiser/privacy", "muninn", "muninn/privacy", "about"):
+    for folder in (
+        "writing",
+        "semestra",
+        "semestra/privacy-policy",
+        "paradeiser",
+        "paradeiser/privacy",
+        "paradeiser/privacy-policy",
+        "muninn",
+        "muninn/privacy",
+        "imprint",
+        "about",
+    ):
         (DIST / folder).mkdir(parents=True, exist_ok=True)
     (DIST / "favicon.svg").write_text(FAVICON_SVG, encoding="utf-8")
 
@@ -634,10 +652,14 @@ def build() -> None:
             show_progress=True,
         )
 
-    # 4. Semestra Product & Changelog Page (dist/semestra/index.html)
+    # 4. Semestra Product, Changelog & Privacy Policy Pages (dist/semestra/)
     support_email = html.escape(sem.get("support_email", "").strip())
     support_link = f'<a href="mailto:{support_email}">{support_email}</a>'
-    support_meta_html = f"<div>Support: {support_link}</div>" if support_email else ""
+    support_meta_html = (
+        f'<div>Support: {support_link} &middot; <a href="/semestra/privacy-policy/">Privacy Policy</a></div>'
+        if support_email
+        else '<div><a href="/semestra/privacy-policy/">Privacy Policy</a></div>'
+    )
 
     semestra_html = f"""
     <section class="semestra-hero">
@@ -698,6 +720,148 @@ def build() -> None:
         description=sem["summary"],
     )
 
+    semestra_privacy_html = f"""
+    <div class="reader-container">
+      <div class="reader-controls">
+        <a href="/semestra/">&larr; Back to Semestra</a>
+        <div class="legal-lang-links" aria-label="Language">
+          <a href="#de">Deutsch</a>
+          <a href="#en">English</a>
+        </div>
+      </div>
+
+      <article id="de" lang="de">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Datenschutzerklärung</span>
+            <span>&middot;</span>
+            <span>Semestra</span>
+            <span>&middot;</span>
+            <span>Stand: 17. Oktober 2026</span>
+          </div>
+          <h1 class="article-title">Datenschutzerklärung für Semestra</h1>
+        </header>
+        <div class="prose-body">
+          <div class="legal-summary">
+            <p><strong>Kurz gesagt:</strong> Semestra braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt keine eigenen Server. Deine Prüfungen, dein Lernplan und dein Fortschritt bleiben auf deinem Gerät – oder, wenn du die iCloud-Synchronisierung einschaltest, in deinem eigenen iCloud-Account. Ich als Entwickler habe keinen Zugriff darauf.</p>
+          </div>
+
+          <h2>1. Verantwortlicher</h2>
+          <address class="legal-address">
+            Lukas Geyer<br />
+            Ghegagasse 13/32<br />
+            8020 Graz, Österreich<br />
+            E-Mail: <a href="mailto:{support_email}">{support_email}</a>
+          </address>
+
+          <h2>2. Daten auf deinem Gerät</h2>
+          <p>Alles, was du in Semestra einträgst – Prüfungen, Themen, Lerneinheiten, Noten, ECTS, importierte Kalender und deine Einstellungen – wird lokal auf deinem Gerät gespeichert und dort verarbeitet. Diese Daten werden nicht an mich oder an Dritte übertragen. Wenn du die App löschst, werden auch diese Daten gelöscht.</p>
+
+          <h2>3. Zugriff auf deine Kalender</h2>
+          <p>Wenn du es erlaubst, liest Semestra deine Kalender, um freie Zeit zum Lernen zu finden und Prüfungstermine zu erkennen, und trägt deine Lerneinheiten in einen eigenen Kalender ein. Das passiert ausschließlich auf deinem Gerät. Du kannst den Zugriff jederzeit in den iOS-Einstellungen unter <em>Datenschutz &amp; Sicherheit &rsaquo; Kalender</em> widerrufen.</p>
+
+          <h2>4. Kalender-Abos und importierte Dateien</h2>
+          <p>Du kannst Kalenderdateien (.ics) importieren oder eine Kalender-Adresse abonnieren, etwa von deiner Hochschule. Bei einem Abo lädt Semestra den Kalender direkt von der Adresse, die du angegeben hast. Dabei erhält der Server dieser Adresse – wie bei jedem Aufruf im Internet – technische Daten wie deine IP-Adresse. Für diese Verarbeitung ist der Betreiber des jeweiligen Servers verantwortlich; es gilt dessen Datenschutzerklärung. Ich erhalte dabei keine Daten.</p>
+
+          <h2>5. iCloud-Synchronisierung (optional)</h2>
+          <p>Mit Semestra Plus kannst du deine Daten über iCloud auf deinen Geräten synchronisieren. Die Daten werden dann in der privaten Datenbank deines iCloud-Accounts bei Apple gespeichert. Nur du hast darauf Zugriff, ich nicht. Es gilt die <a href="https://www.apple.com/at/legal/privacy/" target="_blank" rel="noopener noreferrer">Datenschutzrichtlinie von Apple</a>. Du kannst die Synchronisierung in den Einstellungen von Semestra ausschalten und die gespeicherten Daten in den iOS-Einstellungen unter <em>[Dein Name] &rsaquo; iCloud &rsaquo; Speicher verwalten</em> löschen.</p>
+
+          <h2>6. Käufe und Abos</h2>
+          <p>Käufe von Semestra Plus werden vollständig von Apple über den App Store abgewickelt. Ich erhalte keine Zahlungsdaten und keine Daten, die dich persönlich identifizieren. Die App prüft auf deinem Gerät nur, ob ein aktives Abo besteht.</p>
+
+          <h2>7. Mitteilungen, Widgets und Siri</h2>
+          <p>Erinnerungen an Lerneinheiten werden als lokale Mitteilungen auf deinem Gerät geplant. Widgets und Live-Aktivitäten zeigen Daten an, die auf deinem Gerät bleiben. Wenn du Siri oder Kurzbefehle mit Semestra verwendest, verarbeitet Apple deine Anfragen gemäß der Datenschutzrichtlinie von Apple.</p>
+
+          <h2>8. Export und Teilen</h2>
+          <p>Wenn du deinen Lernplan als PDF oder Kalenderdatei exportierst, entscheidest du selbst, wohin die Datei geht. Semestra versendet dabei nichts von sich aus.</p>
+
+          <h2>9. Absturzberichte und Statistiken von Apple</h2>
+          <p>Wenn du in den iOS-Einstellungen zugestimmt hast, Analysedaten mit App-Entwicklern zu teilen, stellt Apple mir anonymisierte Absturzberichte und zusammengefasste Nutzungsstatistiken (z.&nbsp;B. Anzahl der Installationen) zur Verfügung. Daraus kann ich keine Rückschlüsse auf dich als Person ziehen. Du kannst das unter <em>Datenschutz &amp; Sicherheit &rsaquo; Analyse &amp; Verbesserungen</em> ausschalten.</p>
+
+          <h2>10. Diese Website</h2>
+          <p>Beim Aufruf von lukasgeyer.com (sowie semestra.at) verarbeitet der Hosting-Anbieter GitHub, Inc. (USA) über GitHub Pages technisch notwendige Daten wie deine IP-Adresse, Datum und Uhrzeit sowie die aufgerufene Seite, um die Website auszuliefern und abzusichern (Art. 6 Abs. 1 lit. f DSGVO). GitHub kann diese Daten in den USA verarbeiten; die Übermittlung stützt sich auf das EU-US Data Privacy Framework. Näheres in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">Datenschutzerklärung von GitHub</a>. Die Website verwendet keine Cookies und keine Analyse-Tools.</p>
+
+          <h2>11. Deine Rechte</h2>
+          <p>Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Da ich keine personenbezogenen Daten über dich speichere, kann ich dir in der Regel nur bestätigen, dass keine vorhanden sind. Schreib mir dazu gern an die oben genannte E-Mail-Adresse.</p>
+          <p>Außerdem kannst du dich bei der Aufsichtsbehörde beschweren. In Österreich ist das die <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Österreichische Datenschutzbehörde</a>, Barichgasse 40–42, 1030 Wien.</p>
+
+          <h2>12. Änderungen</h2>
+          <p>Wenn sich Semestra ändert, passe ich diese Datenschutzerklärung an. Es gilt jeweils die hier veröffentlichte Fassung. Weitere Angaben findest du im <a href="/imprint/">Impressum</a>.</p>
+        </div>
+      </article>
+
+      <hr class="legal-divider" />
+
+      <article id="en" lang="en">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Privacy Policy</span>
+            <span>&middot;</span>
+            <span>Semestra</span>
+            <span>&middot;</span>
+            <span>Last updated: 17 October 2026</span>
+          </div>
+          <h1 class="article-title">Semestra Privacy Policy</h1>
+        </header>
+        <div class="prose-body">
+          <div class="legal-summary">
+            <p><strong>In short:</strong> Semestra needs no account, shows no ads, contains no analytics or tracking tools and runs no servers of its own. Your exams, study plan and progress stay on your device – or, if you turn on iCloud sync, in your own iCloud account. I, the developer, have no access to them.</p>
+          </div>
+
+          <h2>1. Controller</h2>
+          <address class="legal-address">
+            Lukas Geyer<br />
+            Ghegagasse 13/32<br />
+            8020 Graz, Austria<br />
+            Email: <a href="mailto:{support_email}">{support_email}</a>
+          </address>
+
+          <h2>2. Data on your device</h2>
+          <p>Everything you enter in Semestra – exams, topics, study sessions, grades, ECTS credits, imported calendars and your settings – is stored and processed locally on your device. It is not sent to me or to any third party. Deleting the app deletes this data.</p>
+
+          <h2>3. Access to your calendars</h2>
+          <p>If you allow it, Semestra reads your calendars to find free time for studying and to detect exam dates, and adds your study blocks to a separate calendar. This happens only on your device. You can revoke access at any time in iOS Settings under <em>Privacy &amp; Security &rsaquo; Calendars</em>.</p>
+
+          <h2>4. Calendar subscriptions and imported files</h2>
+          <p>You can import calendar files (.ics) or subscribe to a calendar address, for example from your university. For a subscription, Semestra downloads the calendar directly from the address you entered. Like any request on the internet, this gives that server technical data such as your IP address. The operator of that server is responsible for this processing, and its privacy policy applies. I receive no data from this.</p>
+
+          <h2>5. iCloud sync (optional)</h2>
+          <p>With Semestra Plus you can sync your data across your devices via iCloud. The data is then stored in the private database of your iCloud account at Apple. Only you can access it, not me. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a> applies. You can turn sync off in Semestra's settings and delete the stored data in iOS Settings under <em>[Your Name] &rsaquo; iCloud &rsaquo; Manage Storage</em>.</p>
+
+          <h2>6. Purchases and subscriptions</h2>
+          <p>Purchases of Semestra Plus are handled entirely by Apple through the App Store. I receive no payment details and no data that identifies you personally. The app only checks on your device whether a subscription is active.</p>
+
+          <h2>7. Notifications, widgets and Siri</h2>
+          <p>Study reminders are scheduled as local notifications on your device. Widgets and Live Activities show data that stays on your device. If you use Siri or Shortcuts with Semestra, Apple processes your requests under Apple's Privacy Policy.</p>
+
+          <h2>8. Export and sharing</h2>
+          <p>When you export your study plan as a PDF or calendar file, you decide where the file goes. Semestra doesn't send anything on its own.</p>
+
+          <h2>9. Crash reports and statistics from Apple</h2>
+          <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>.</p>
+
+          <h2>10. This website</h2>
+          <p>When you visit lukasgeyer.com (as well as semestra.at), the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
+
+          <h2>11. Your rights</h2>
+          <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. Since I store no personal data about you, I can usually only confirm that there is none. Just write to the email address above.</p>
+          <p>You also have the right to lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a> (Datenschutzbehörde), Barichgasse 40–42, 1030 Vienna.</p>
+
+          <h2>12. Changes</h2>
+          <p>If Semestra changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
+        </div>
+      </article>
+    </div>
+    """
+    write_page(
+        "semestra/privacy-policy/index.html",
+        title=f"Semestra Privacy Policy — {site['name']}",
+        path="/semestra/privacy-policy/",
+        active_nav="semestra",
+        content_html=semestra_privacy_html,
+        description="Datenschutzerklärung der App Semestra / Privacy policy of the Semestra app.",
+    )
+
     # 4b. Paradeiser Product & Privacy Pages (dist/paradeiser/index.html & privacy)
     paradeiser = site["paradeiser"]
     paradeiser_email = html.escape(paradeiser.get("support_email", site["email"]).strip())
@@ -712,7 +876,7 @@ def build() -> None:
         </div>
         <div class="semestra-meta">
           <div>{html.escape(paradeiser['platforms'])} &middot; {html.escape(paradeiser['pricing'])}</div>
-          <div>Support: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a> &middot; <a href="/paradeiser/privacy/">Privacy Policy</a></div>
+          <div>Support: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a> &middot; <a href="/paradeiser/privacy-policy/">Privacy Policy</a></div>
         </div>
       </div>
     </section>
@@ -750,44 +914,164 @@ def build() -> None:
     )
 
     paradeiser_privacy_html = f"""
-    <article class="reader-container">
+    <div class="reader-container">
       <div class="reader-controls">
         <a href="/paradeiser/">&larr; Back to Paradeiser</a>
-      </div>
-      <header class="article-header">
-        <div class="article-meta-line">
-          <span class="kind-tag">Privacy Policy</span>
-          <span>&middot;</span>
-          <span>Paradeiser</span>
+        <div class="legal-lang-links" aria-label="Language">
+          <a href="#de">Deutsch</a>
+          <a href="#en">English</a>
         </div>
-        <h1 class="article-title">Privacy Policy</h1>
-        <p class="article-subtitle">Paradeiser is designed to keep your focus data private and on your device.</p>
-      </header>
-      <div class="prose-body">
-        <h2>Data We Collect</h2>
-        <p><strong>None.</strong> Paradeiser does not collect, sell, or share personal data, does not require an account, and does not include third-party analytics or advertising SDKs.</p>
-
-        <h2>On-Device Storage</h2>
-        <p>Your custom timer presets, preferences, and focus session history are stored locally on your device using Apple's SwiftData and UserDefaults frameworks. If iCloud Sync is enabled in a future release, your data will sync strictly through your private Apple iCloud account.</p>
-
-        <h2>Subscriptions &amp; Purchases</h2>
-        <p>Optional <strong>Paradeiser Plus</strong> subscriptions are processed directly by Apple through StoreKit and the App Store. We never receive or store your payment information. You can manage or cancel your subscription at any time in your Apple Account settings.</p>
-
-        <h2>Notifications</h2>
-        <p>If you grant notification permission, Paradeiser schedules local notifications exclusively on your device to alert you when focus or break intervals finish.</p>
-
-        <h2>Contact</h2>
-        <p>If you have any questions about this privacy policy, email <a href="mailto:{paradeiser_email}">{paradeiser_email}</a>.</p>
       </div>
-    </article>
+
+      <article id="de" lang="de">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Datenschutzerklärung</span>
+            <span>&middot;</span>
+            <span>Paradeiser</span>
+            <span>&middot;</span>
+            <span>Stand: 23. November 2026</span>
+          </div>
+          <h1 class="article-title">Datenschutzerklärung für Paradeiser</h1>
+        </header>
+        <div class="prose-body">
+          <div class="legal-summary">
+            <p><strong>Kurz gesagt:</strong> Paradeiser braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt keine eigenen Server. Deine Fokus-Sitzungen, Presets, Tags, Meilensteine und Einstellungen bleiben auf deinem Gerät. Ich als Entwickler habe keinen Zugriff darauf.</p>
+          </div>
+
+          <h2>1. Verantwortlicher</h2>
+          <address class="legal-address">
+            Lukas Geyer<br />
+            Ghegagasse 13/32<br />
+            8020 Graz, Österreich<br />
+            E-Mail: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a>
+          </address>
+
+          <h2>2. Daten auf deinem Gerät</h2>
+          <p>Alles, was du in Paradeiser anlegst und aufzeichnest – eigene Zeitpläne und Presets, Fokus-Tags, abgeschlossene Fokus-Sitzungen, dein Tagesziel, Serien, Meilensteine, freigeschaltete Paradeiser-Sorten und deine Einstellungen – wird lokal auf deinem Gerät (über SwiftData und UserDefaults) gespeichert und verarbeitet. Diese Daten werden nicht an mich oder an Dritte übertragen. Wenn du die App löschst, werden auch diese Daten gelöscht.</p>
+
+          <h2>3. Apple Kalender (optional)</h2>
+          <p>Wenn du die Kalender-Synchronisierung mit Paradeiser Plus einschaltest und den Zugriff erlaubst, trägt Paradeiser abgeschlossene Fokus-Sitzungen als Ereignisse in den von dir gewählten Kalender ein. Das passiert ausschließlich auf deinem Gerät. Du kannst den Zugriff jederzeit in den iOS-Einstellungen unter <em>Datenschutz &amp; Sicherheit &rsaquo; Kalender</em> widerrufen.</p>
+
+          <h2>4. Apple Health (optional)</h2>
+          <p>Wenn du die Apple-Health-Synchronisierung einschaltest und den Schreibzugriff erlaubst, speichert Paradeiser abgeschlossene Fokus-Sitzungen lokal auf deinem Gerät als Achtsamkeitsminuten (<em>Mindful Minutes</em>) in Apple Health. Paradeiser liest keine Gesundheitsdaten aus und gibt niemals Daten aus Apple Health an mich oder an Dritte weiter. Du kannst die Berechtigung jederzeit in der Health-App oder in den iOS-Einstellungen widerrufen.</p>
+
+          <h2>5. App-Blockierung über Bildschirmzeit (optional)</h2>
+          <p>Wenn du die App-Blockierung einschaltest und die Bildschirmzeit-Berechtigung erteilst, nutzt Paradeiser Apples <em>FamilyControls</em>- und <em>ManagedSettings</em>-Schnittstellen, um ablenkende Apps während aktiver Fokus-Intervalle auszublenden (ausgenommen von dir erlaubte Apps). Deine Auswahl wird von iOS ausschließlich in Form anonymer System-Token lokal auf deinem Gerät gespeichert – ich als Entwickler kann zu keinem Zeitpunkt sehen, welche Apps du installiert hast, nutzt oder blockierst.</p>
+
+          <h2>6. Fotos und Teilen von Stickern (optional)</h2>
+          <p>Wenn du einen Paradeiser-Sticker in deinen Fotos speicherst, fragt Paradeiser ausschließlich nach der Berechtigung zum Hinzufügen neuer Bilder (<em>Nur Fotos hinzufügen</em>), ohne auf deine bestehenden Fotos zuzugreifen. Wenn du Sticker oder deinen Wochenrückblick kopierst oder teilst, entscheidest du selbst, wohin die Inhalte gehen. Paradeiser versendet dabei nichts von sich aus.</p>
+
+          <h2>7. Käufe und Abos</h2>
+          <p>Käufe von Paradeiser Plus (Monats-, Jahres- oder Lebenslang-Zugang) werden vollständig von Apple über den App Store (StoreKit) abgewickelt. Ich erhalte keine Zahlungsdaten und keine Daten, die dich persönlich identifizieren. Die App prüft auf deinem Gerät nur, ob ein aktiver Zugang besteht.</p>
+
+          <h2>8. Mitteilungen und Live-Aktivitäten</h2>
+          <p>Hinweise zum Abschluss von Fokus- oder Pausenphasen werden als lokale Mitteilungen auf deinem Gerät geplant. Live-Aktivitäten auf dem Sperrbildschirm und in der Dynamic Island zeigen Timer-Daten an, die vollständig auf deinem Gerät bleiben.</p>
+
+          <h2>9. Absturzberichte und Statistiken von Apple</h2>
+          <p>Wenn du in den iOS-Einstellungen zugestimmt hast, Analysedaten mit App-Entwicklern zu teilen, stellt Apple mir anonymisierte Absturzberichte und zusammengefasste Nutzungsstatistiken (z.&nbsp;B. Anzahl der Installationen) zur Verfügung. Daraus kann ich keine Rückschlüsse auf dich als Person ziehen. Du kannst das unter <em>Datenschutz &amp; Sicherheit &rsaquo; Analyse &amp; Verbesserungen</em> ausschalten.</p>
+
+          <h2>10. Diese Website</h2>
+          <p>Beim Aufruf von lukasgeyer.com verarbeitet der Hosting-Anbieter GitHub, Inc. (USA) über GitHub Pages technisch notwendige Daten wie deine IP-Adresse, Datum und Uhrzeit sowie die aufgerufene Seite, um die Website auszuliefern und abzusichern (Art. 6 Abs. 1 lit. f DSGVO). GitHub kann diese Daten in den USA verarbeiten; die Übermittlung stützt sich auf das EU-US Data Privacy Framework. Näheres in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">Datenschutzerklärung von GitHub</a>. Die Website verwendet keine Cookies und keine Analyse-Tools.</p>
+
+          <h2>11. Deine Rechte</h2>
+          <p>Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Da ich keine personenbezogenen Daten über dich speichere, kann ich dir in der Regel nur bestätigen, dass keine vorhanden sind. Schreib mir dazu gern an die oben genannte E-Mail-Adresse.</p>
+          <p>Außerdem kannst du dich bei der Aufsichtsbehörde beschweren. In Österreich ist das die <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Österreichische Datenschutzbehörde</a>, Barichgasse 40–42, 1030 Wien.</p>
+
+          <h2>12. Änderungen</h2>
+          <p>Wenn sich Paradeiser ändert, passe ich diese Datenschutzerklärung an. Es gilt jeweils die hier veröffentlichte Fassung. Weitere Angaben findest du im <a href="/imprint/">Impressum</a>.</p>
+        </div>
+      </article>
+
+      <hr class="legal-divider" />
+
+      <article id="en" lang="en">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Privacy Policy</span>
+            <span>&middot;</span>
+            <span>Paradeiser</span>
+            <span>&middot;</span>
+            <span>Last updated: 23 November 2026</span>
+          </div>
+          <h1 class="article-title">Paradeiser Privacy Policy</h1>
+        </header>
+        <div class="prose-body">
+          <div class="legal-summary">
+            <p><strong>In short:</strong> Paradeiser needs no account, shows no ads, contains no analytics or tracking tools and runs no servers of its own. Your focus sessions, presets, tags, milestones and settings stay on your device. I, the developer, have no access to them.</p>
+          </div>
+
+          <h2>1. Controller</h2>
+          <address class="legal-address">
+            Lukas Geyer<br />
+            Ghegagasse 13/32<br />
+            8020 Graz, Austria<br />
+            Email: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a>
+          </address>
+
+          <h2>2. Data on your device</h2>
+          <p>Everything you create and record in Paradeiser – custom schedules and presets, focus tags, completed focus sessions, daily goals, streaks, milestones, unlocked tomato varieties and your settings – is stored and processed locally on your device using Apple's SwiftData and UserDefaults frameworks. It is not sent to me or to any third party. Deleting the app deletes this data.</p>
+
+          <h2>3. Apple Calendar (optional)</h2>
+          <p>If you turn on Calendar sync with Paradeiser Plus and grant permission, Paradeiser saves your completed focus sessions as events in the calendar you select. This happens strictly on your device. You can revoke access at any time in iOS Settings under <em>Privacy &amp; Security &rsaquo; Calendars</em>.</p>
+
+          <h2>4. Apple Health (optional)</h2>
+          <p>If you turn on Apple Health sync and grant write permission, Paradeiser records completed focus sessions locally on your device as Mindful Minutes in Apple Health. Paradeiser never reads Health data and never shares Health data with me or any third party. You can revoke permission at any time in the Health app or iOS Settings.</p>
+
+          <h2>5. App Blocking via Screen Time (optional)</h2>
+          <p>If you enable App Blocking and grant Screen Time authorization, Paradeiser uses Apple's <em>FamilyControls</em> and <em>ManagedSettings</em> frameworks to shield distracting apps during active focus intervals (excluding apps you mark as allowed). Your selection is stored locally on your device as opaque, privacy-preserving system tokens – I, the developer, can never see which apps you have installed, use or block.</p>
+
+          <h2>6. Photos and sticker sharing (optional)</h2>
+          <p>When you save a Paradeiser sticker to your Photo Library, Paradeiser requests add-only permission solely to write the PNG image and cannot read your existing photos. When you copy or share a sticker or weekly recap, you decide where it goes. Paradeiser never sends anything on its own.</p>
+
+          <h2>7. Purchases and subscriptions</h2>
+          <p>Purchases of Paradeiser Plus (monthly, yearly or lifetime) are handled entirely by Apple through the App Store (StoreKit). I receive no payment details and no data that identifies you personally. The app only checks on your device whether an entitlement is active.</p>
+
+          <h2>8. Notifications and Live Activities</h2>
+          <p>Phase completion alerts are scheduled as local notifications on your device. Lock Screen and Dynamic Island Live Activities display timer state that stays entirely on your device.</p>
+
+          <h2>9. Crash reports and statistics from Apple</h2>
+          <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>.</p>
+
+          <h2>10. This website</h2>
+          <p>When you visit lukasgeyer.com, the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
+
+          <h2>11. Your rights</h2>
+          <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. Since I store no personal data about you, I can usually only confirm that there is none. Just write to the email address above.</p>
+          <p>You also have the right to lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a> (Datenschutzbehörde), Barichgasse 40–42, 1030 Vienna.</p>
+
+          <h2>12. Changes</h2>
+          <p>If Paradeiser changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
+        </div>
+      </article>
+    </div>
     """
     write_page(
-        "paradeiser/privacy/index.html",
+        "paradeiser/privacy-policy/index.html",
         title=f"Paradeiser Privacy Policy — {site['name']}",
-        path="/paradeiser/privacy/",
+        path="/paradeiser/privacy-policy/",
         active_nav="paradeiser",
         content_html=paradeiser_privacy_html,
-        description="Privacy Policy for the Paradeiser interval focus timer app.",
+        description="Datenschutzerklärung der App Paradeiser / Privacy policy of the Paradeiser app.",
+    )
+
+    # Keep /paradeiser/privacy/ redirecting cleanly to /paradeiser/privacy-policy/ for backwards compatibility.
+    (DIST / "paradeiser" / "privacy" / "index.html").write_text(
+        """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="refresh" content="0; url=/paradeiser/privacy-policy/" />
+  <link rel="canonical" href="https://lukasgeyer.com/paradeiser/privacy-policy/" />
+  <title>Redirecting to Paradeiser Privacy Policy…</title>
+</head>
+<body>
+  <p>Redirecting to <a href="/paradeiser/privacy-policy/">Paradeiser Privacy Policy</a>…</p>
+</body>
+</html>
+""",
+        encoding="utf-8",
     )
 
     # 4c. Muninn Product & Privacy Pages (dist/muninn/index.html & privacy)
@@ -938,6 +1222,113 @@ def build() -> None:
         content_html=about_html,
     )
 
+    # 5b. Shared Imprint / Legal Notice Page (dist/imprint/index.html) for Semestra & Paradeiser
+    imprint_html = f"""
+    <div class="reader-container">
+      <div class="reader-controls">
+        <a href="/">&larr; Home</a>
+        <div class="legal-lang-links" aria-label="Language">
+          <a href="#de">Deutsch</a>
+          <a href="#en">English</a>
+        </div>
+      </div>
+
+      <article id="de" lang="de">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Impressum</span>
+            <span>&middot;</span>
+            <span>Semestra &amp; Paradeiser</span>
+          </div>
+          <h1 class="article-title">Impressum</h1>
+          <p class="article-subtitle">Informationen gemäß &sect;&nbsp;5 ECG und Offenlegung gemäß &sect;&nbsp;25 MedienG</p>
+        </header>
+        <div class="prose-body">
+          <dl class="legal-dl">
+            <dt>Medieninhaber und Diensteanbieter</dt>
+            <dd>
+              <address>
+                Lukas Geyer<br />
+                Ghegagasse 13/32<br />
+                8020 Graz, Österreich
+              </address>
+            </dd>
+
+            <dt>Kontakt</dt>
+            <dd>
+              Semestra: <a href="mailto:{support_email}">{support_email}</a><br />
+              Paradeiser &amp; Allgemein: <a href="mailto:{site_email}">{site_email}</a>
+            </dd>
+
+            <dt>Unternehmensgegenstand</dt>
+            <dd>Entwicklung und Vertrieb der iOS-Apps Semestra und Paradeiser</dd>
+
+            <dt>Grundlegende Richtung der Website</dt>
+            <dd>Texte sowie Informationen über die Apps Semestra und Paradeiser, Support und rechtliche Hinweise</dd>
+          </dl>
+
+          <h2>Haftung für Links</h2>
+          <p>Diese Website enthält Links zu Websites Dritter. Für deren Inhalte sind ausschließlich deren Betreiber verantwortlich. Sollten mir Rechtsverletzungen auf verlinkten Seiten bekannt werden, entferne ich den Link umgehend.</p>
+
+          <h2>Datenschutz</h2>
+          <p>Wie die Apps und diese Website mit Daten umgehen, steht in den jeweiligen Datenschutzerklärungen für <a href="/semestra/privacy-policy/#de">Semestra</a> und <a href="/paradeiser/privacy-policy/#de">Paradeiser</a>.</p>
+        </div>
+      </article>
+
+      <hr class="legal-divider" />
+
+      <article id="en" lang="en">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Legal Notice</span>
+            <span>&middot;</span>
+            <span>Semestra &amp; Paradeiser</span>
+          </div>
+          <h1 class="article-title">Legal Notice</h1>
+          <p class="article-subtitle">Information under &sect;&nbsp;5 ECG and disclosure under &sect;&nbsp;25 MedienG (Austrian law)</p>
+        </header>
+        <div class="prose-body">
+          <dl class="legal-dl">
+            <dt>Owner and service provider</dt>
+            <dd>
+              <address>
+                Lukas Geyer<br />
+                Ghegagasse 13/32<br />
+                8020 Graz, Austria
+              </address>
+            </dd>
+
+            <dt>Contact</dt>
+            <dd>
+              Semestra: <a href="mailto:{support_email}">{support_email}</a><br />
+              Paradeiser &amp; General: <a href="mailto:{site_email}">{site_email}</a>
+            </dd>
+
+            <dt>Business purpose</dt>
+            <dd>Development and distribution of the iOS apps Semestra and Paradeiser</dd>
+
+            <dt>Purpose of this website</dt>
+            <dd>Writing, information about the Semestra and Paradeiser apps, support and legal notices</dd>
+          </dl>
+
+          <h2>Liability for links</h2>
+          <p>This website contains links to third-party websites. Their operators alone are responsible for their content. If I become aware of any legal violations on linked pages, I will remove the link immediately.</p>
+
+          <h2>Privacy</h2>
+          <p>How the apps and this website handle data is described in the privacy policies for <a href="/semestra/privacy-policy/#en">Semestra</a> and <a href="/paradeiser/privacy-policy/#en">Paradeiser</a>.</p>
+        </div>
+      </article>
+    </div>
+    """
+    write_page(
+        "imprint/index.html",
+        title=f"Imprint — {site['name']}",
+        path="/imprint/",
+        active_nav="",
+        content_html=imprint_html,
+        description="Impressum / Legal Notice for lukasgeyer.com, Semestra, and Paradeiser.",
+    )
+
     # 6. Not-found page (dist/404.html — GitHub Pages serves it for unknown URLs)
     write_page(
         "404.html",
@@ -1031,10 +1422,12 @@ def build() -> None:
         sitemap_pages += [(w["url"], w["date"]) for w in writings]
         sitemap_pages += [
             ("/semestra/", updates[0]["date"] if updates else None),
+            ("/semestra/privacy-policy/", None),
             ("/paradeiser/", paradeiser_updates[0]["date"] if paradeiser_updates else None),
-            ("/paradeiser/privacy/", None),
+            ("/paradeiser/privacy-policy/", None),
             ("/muninn/", muninn_updates[0]["date"] if muninn_updates else None),
             ("/muninn/privacy/", None),
+            ("/imprint/", None),
             ("/about/", None),
         ]
         sitemap_urls = "\n".join(

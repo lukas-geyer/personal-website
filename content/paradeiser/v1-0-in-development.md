@@ -13,7 +13,7 @@ Paradeiser 1.0 is the first version. Development started on 21 November 2026; it
 
 - **Your own intervals:** Any combination of focus blocks and breaks, such as three 45-minute blocks with 15-minute breaks, saved as presets.
 - **Keeps running:** The timer follows the clock, so it stays right when the app is closed or the iPhone is locked.
-- **Live Activity:** The running interval on the Lock Screen and in the Dynamic Island, with buttons to pause, resume and skip.
+- **Live Activity:** The running interval on the Lock Screen and in the Dynamic Island, with its progress, the time left and buttons to reset, pause, resume and skip.
 - **Chimes and notifications** when a round or a break ends.
 - **English and German.**
 

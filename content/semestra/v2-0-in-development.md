@@ -19,6 +19,7 @@ Version 2.0 collects everything built since the first release. It is finished in
 - **Missed a class?** One tap, and the catch-up time goes into your plan.
 - **Streaks, rethought:** They count days you kept your plan. Days off no longer break them.
 - **Readiness and milestones:** Every exam shows how much of its study time is done, and milestones mark your first steps, a week on plan and your first fully prepared exam.
+- **Dynamic Island:** The current study block on the Lock Screen and in the Dynamic Island, with its progress and the time left. With Plus, you pause and finish the focus timer right there.
 - **Redesign:** A calendar like the Calendar app, tidier settings, wheels instead of plus and minus, and better layouts with large text.
 
 ### Semestra and Paradeiser

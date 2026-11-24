@@ -1,14 +1,19 @@
 {
   "name": "Lukas Geyer",
   "url": "https://lukasgeyer.com",
-  "kicker":"Writing & Building Software",
-  "tagline": "Short fiction, longform notes, and development dispatches for Semestra.",
-  "intro": "I write stories and build thoughtful software for iOS. This is a quiet place for longform fiction, essays on craft, and release notes for Semestra—a smart study planner for students.",
+  "kicker": "Apps for Studying",
+  "tagline": "Semestra, Paradeiser and Muninn: calm, private apps for studying, built by Lukas Geyer.",
+  "intro": "I build calm, private apps for studying: Semestra plans your study time around your lectures, Paradeiser keeps you focused in intervals, and Muninn will help you remember. No accounts, no ads, no tracking.",
   "email": "lukas.geyer03@icloud.com",
   "links": [
-    { "label": "GitHub", "url": "https://github.com/lukas-geyer/personal-website" },
-    { "label": "App Store", "url": "https://apps.apple.com/app/semestra-smart-study-planner/id6736848037" },
-    { "label": "RSS", "url": "/rss.xml" }
+    {
+      "label": "GitHub",
+      "url": "https://github.com/lukas-geyer"
+    },
+    {
+      "label": "RSS",
+      "url": "/rss.xml"
+    }
   ],
   "newsletter": {
     "heading": "Letters & New Stories",
@@ -20,21 +25,23 @@
   },
   "semestra": {
     "name": "Semestra",
-    "subtitle": "Smart Study Planner for iPhone, iPad & Mac",
-    "summary": "Semestra turns university timetables and syllabi into calm, adaptive study schedules—recalculating automatically when lectures shift and keeping exams within reach.",
-    "app_store_url": "https://apps.apple.com/app/semestra-smart-study-planner/id6736848037",
+    "subtitle": "Study Planner for iPhone & iPad",
+    "summary": "Semestra turns your university timetable into a study plan: it finds the free time between your lectures, spreads the study time for each exam until exam day, and adjusts by itself when something moves.",
+    "app_store_url": "https://apps.apple.com/app/id6823776092",
     "support_email": "hallo@semestra.at",
-    "platforms": "iPhone · iPad · Mac (iCloud Sync)",
-    "pricing": "Free with optional Semestra Plus"
+    "platforms": "iPhone · iPad",
+    "pricing": "Free · Semestra Plus arrives with version 2.0",
+    "status": "On the App Store · v1.0",
+    "accent": "semestra"
   },
   "paradeiser": {
     "name": "Paradeiser",
-    "subtitle": "Calm Interval Focus Timer for iPhone & iPad",
+    "subtitle": "Interval Focus Timer for iPhone & iPad",
     "status": "In Development · v1.0",
-    "summary": "Paradeiser is a quiet, tactile interval timer for deep work and study—set custom focus blocks and breaks (like 3 × 45 min with 15 min breaks in between), follow along on your Lock Screen, and track when and how long you focus.",
+    "summary": "Paradeiser is a calm interval timer for focused study and work: set your focus blocks and breaks, follow along on the Lock Screen, and grow a tomato for every round you finish.",
     "support_email": "lukas.geyer03@icloud.com",
-    "platforms": "iPhone · iPad · macOS (planned)",
-    "pricing": "Free · Optional Paradeiser Plus (€1,99/mo)"
+    "platforms": "iPhone · iPad",
+    "pricing": "Free · Optional Paradeiser Plus"
   },
   "muninn": {
     "name": "Muninn",
@@ -42,7 +49,7 @@
     "status": "In Development · Phase 1 (Core)",
     "summary": "A spaced-repetition flashcard app as capable as Anki without being a clone of it: one shared Rust core with an FSRS-7 scheduler and lossless Anki deck import, wrapped in fast native apps starting with iOS and macOS.",
     "support_email": "lukas.geyer03@icloud.com",
-    "platforms": "iOS · macOS · Android · Desktop (planned)",
+    "platforms": "iOS · macOS first · Android and desktop planned",
     "pricing": "Free on every platform · Optional Plus tier"
   }
 }

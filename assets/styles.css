@@ -1144,3 +1144,309 @@ body.focus-mode .masthead:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   App pages and home (November 2026 refresh)
+   One set of pieces for Semestra, Paradeiser and Muninn: identity, status
+   pill, screenshots, feature cards. Each app page sets its own --app-accent.
+   ========================================================================== */
+
+.app-page--semestra, .app-card--semestra { --app-accent: #4F4BD8; --app-tint: rgba(79, 75, 216, 0.09); }
+.app-page--paradeiser, .app-card--paradeiser { --app-accent: #1F7A3A; --app-tint: rgba(31, 122, 58, 0.10); }
+.app-page--muninn, .app-card--muninn { --app-accent: #3A4460; --app-tint: rgba(58, 68, 96, 0.10); }
+
+[data-theme="dusk"] .app-page--semestra, [data-theme="dusk"] .app-card--semestra { --app-accent: #9D9BFF; --app-tint: rgba(157, 155, 255, 0.12); }
+[data-theme="dusk"] .app-page--paradeiser, [data-theme="dusk"] .app-card--paradeiser { --app-accent: #6FCF8A; --app-tint: rgba(111, 207, 138, 0.12); }
+[data-theme="dusk"] .app-page--muninn, [data-theme="dusk"] .app-card--muninn { --app-accent: #A9B6DA; --app-tint: rgba(169, 182, 218, 0.12); }
+
+/* Buttons: a little rounder and larger than before, the same everywhere. */
+.btn-solid, .btn-outline {
+  padding: 11px 20px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+.btn-outline { display: inline-flex; align-items: center; }
+
+.display-title { font-size: clamp(32px, 4.4vw, 50px); line-height: 1.12; }
+.intro-band { margin-bottom: 56px; }
+
+/* Identity: icon, name, subtitle */
+.app-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--sans);
+}
+
+.app-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 13px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.10);
+}
+.app-icon--paradeiser { background: linear-gradient(160deg, #FFF8EE, #FBE3CF); }
+.app-icon--paradeiser img { width: 44px; height: 44px; }
+.app-icon--muninn { background: #272D3D; color: #F6F3EC; }
+.app-icon--muninn svg { width: 30px; height: 30px; }
+
+.app-name {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.status-pill {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.status-pill--live {
+  color: #1B6B34;
+  background: rgba(31, 122, 58, 0.12);
+  border-color: rgba(31, 122, 58, 0.25);
+}
+[data-theme="dusk"] .status-pill--live { color: #7FDB98; }
+
+/* Home: app cards */
+.app-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin: 26px 0 64px;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.app-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--app-accent);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.10);
+}
+
+.app-card-visual {
+  height: 250px;
+  background: var(--app-tint);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 26px;
+  overflow: hidden;
+}
+.app-card-visual img {
+  width: 62%;
+  height: auto;
+  border-radius: 22px 22px 0 0;
+  border: 5px solid #17171A;
+  border-bottom: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.app-card-visual--mark { align-items: center; padding-top: 0; color: var(--app-accent); }
+.app-card-visual--mark svg { width: 92px; height: 92px; opacity: 0.85; }
+
+.app-card-body {
+  padding: 22px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+.app-card .app-icon { width: 46px; height: 46px; border-radius: 11px; }
+.app-card .app-icon--paradeiser img { width: 36px; height: 36px; }
+.app-card .app-name { font-size: 19px; }
+.app-card-summary { font-size: 15px; line-height: 1.55; color: var(--muted); }
+.app-card-more {
+  margin-top: auto;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--app-accent);
+}
+
+/* Home: the two apps together */
+.suite-band {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 34px 38px;
+  margin-bottom: 56px;
+}
+.suite-title {
+  font-weight: 400;
+  font-size: clamp(22px, 2.6vw, 29px);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  margin: 10px 0 12px;
+}
+.suite-band p { color: var(--muted); font-size: 16px; max-width: 58ch; }
+.suite-marks { display: flex; align-items: center; gap: 16px; }
+.suite-marks .app-icon { width: 72px; height: 72px; border-radius: 17px; }
+.suite-marks .app-icon--paradeiser img { width: 56px; height: 56px; }
+.suite-plus { font-family: var(--sans); font-size: 26px; color: var(--faint); }
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  margin-bottom: 64px;
+}
+.principles h3, .feature-card h3 {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  margin-bottom: 6px;
+}
+.principles p { font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+.principles > div { padding-top: 14px; border-top: 2px solid var(--ink); }
+
+.update-list { margin-bottom: 64px; }
+.update-row {
+  display: grid;
+  grid-template-columns: 170px 1fr auto;
+  gap: 20px;
+  align-items: baseline;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans);
+  transition: padding-left 0.2s ease;
+}
+.update-row:hover { padding-left: 6px; }
+.update-app { font-size: 13px; font-weight: 650; }
+.update-app--semestra { color: #4F4BD8; }
+.update-app--paradeiser { color: #1F7A3A; }
+.update-app--muninn { color: #3A4460; }
+[data-theme="dusk"] .update-app--semestra { color: #9D9BFF; }
+[data-theme="dusk"] .update-app--paradeiser { color: #6FCF8A; }
+[data-theme="dusk"] .update-app--muninn { color: #A9B6DA; }
+.update-title { font-size: 15.5px; }
+.update-date { font-family: var(--mono); font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+
+/* App page: hero */
+.app-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 48px;
+  align-items: center;
+  padding-bottom: 60px;
+  margin-bottom: 52px;
+  border-bottom: 1px solid var(--rule);
+}
+.app-hero--single { grid-template-columns: minmax(0, 64ch); }
+.app-hero .app-icon { width: 68px; height: 68px; border-radius: 16px; }
+.app-hero .app-icon--paradeiser img { width: 54px; height: 54px; }
+.app-hero .app-icon--muninn svg { width: 36px; height: 36px; }
+.app-hero .app-name { font-size: 34px; }
+.app-hero .app-sub { font-size: 14.5px; }
+.app-hero-status { margin: 18px 0 14px; }
+.app-hero .intro-copy { margin-bottom: 26px; }
+
+.app-facts {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+  font-family: var(--sans);
+}
+.app-facts dt {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.app-facts dd { font-size: 13.5px; color: var(--ink); }
+.app-facts a { border-bottom: 1px solid var(--rule); }
+.app-facts a:hover { color: var(--app-accent); border-color: var(--app-accent); }
+
+.shot-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: center;
+  background: var(--app-tint);
+  border-radius: 28px;
+  padding: 30px 22px;
+}
+.shot { margin: 0; }
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  border: 4px solid #17171A;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+.shot:nth-child(2) { transform: translateY(-14px); }
+
+/* App page: features */
+.feature-section { margin-bottom: 64px; }
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 22px;
+}
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 20px 20px 22px;
+  border-top: 3px solid var(--app-accent);
+}
+.feature-card p { font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+
+.changelog-aside { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.changelog-version { margin-bottom: 0; }
+.changelog-platform { margin-top: 0; line-height: 1.5; }
+.changelog-body a { color: var(--app-accent); border-bottom: 1px solid var(--rule); }
+
+.about-grid .prose-body a { color: var(--accent); }
+
+@media (max-width: 900px) {
+  .app-cards, .feature-grid { grid-template-columns: 1fr 1fr; }
+  .principles { grid-template-columns: 1fr 1fr; }
+  .app-hero { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .app-cards, .feature-grid, .principles, .suite-band, .app-facts { grid-template-columns: 1fr; }
+  .suite-band { padding: 26px 22px; }
+  .suite-marks { justify-content: flex-start; }
+  .update-row { grid-template-columns: 1fr; gap: 2px; }
+  .shot-row { padding: 22px 14px; gap: 8px; border-radius: 22px; }
+  .shot img { border-width: 3px; border-radius: 13px; }
+  .app-card-visual { height: 220px; }
+}
+
+.legal-updated {
+  margin-top: 28px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--faint);
+}

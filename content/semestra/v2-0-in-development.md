@@ -2,7 +2,7 @@
 version: 2.0
 title: Guided Setup, Week View, Semestra Plus and the Link with Paradeiser
 date: 2026-11-24
-platform: iPhone · iPad · iOS 17 or later
+platform: iPhone · iPad · iOS 26 or later
 status: In development
 highlights: The biggest update since launch: guided setup, new tabs, week view, registration deadlines, widgets, Semestra Plus and the link with Paradeiser
 ---

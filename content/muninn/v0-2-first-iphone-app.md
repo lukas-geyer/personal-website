@@ -2,7 +2,7 @@
 version: 0.2 (Phase 2)
 title: The First iPhone App
 date: 2026-11-26
-platform: iPhone · iOS 26 or later
+platform: iPhone · iOS 26 or later · Mac in development
 status: In development
 highlights: Muninn runs on the iPhone, with studying, a card browser, statistics, an editor for every card type, and Anki import and export
 ---
@@ -21,7 +21,7 @@ Muninn now runs as a real app on the iPhone. It is in development and not on the
 - **Undo:** A tap on the wrong button can be taken back, and the card comes up again.
 - **Multiple Choice You Can Tick:** Tap the options you think are right and Muninn shows which were right, which were wrong and which you missed.
 - **Image Occlusion, Cloze and Typed Answers:** Covered parts of an image, gaps in a text and answers you type are all built in as card types.
-- **Sound:** Cards can carry sound.
+- **Sound:** A card's sounds play when it appears, and a switch in Settings turns that off. Silent mode keeps them quiet.
 - **Liquid Glass and Dark Mode:** The controls follow the look of iOS 26, in light and dark, in English and German.
 
 ### Cards

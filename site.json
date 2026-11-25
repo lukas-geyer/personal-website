@@ -146,7 +146,7 @@
   "muninn": {
     "name": "Muninn",
     "subtitle": "Spaced-Repetition Flashcards Built on Rust & FSRS-7",
-    "status": "In Development · Phase 2 (iPhone App)",
+    "status": "In Development · Phase 2 (iPhone & Mac)",
     "summary": "A spaced-repetition flashcard app as capable as Anki without being a clone of it: one shared Rust core with an FSRS-7 scheduler and lossless Anki deck import, wrapped in fast native apps starting with iOS and macOS.",
     "support_email": "lukas.geyer03@icloud.com",
     "platforms": "iOS · macOS first · Android and desktop planned",

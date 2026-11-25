@@ -1,7 +1,7 @@
 ---
 version: 1.0
 title: Interval Timer, Tomatoes and the Link with Semestra
-date: 2026-11-24
+date: 2026-11-26
 platform: iPhone · iPad · iOS 26 or later
 status: In development
 highlights: A calm interval timer with Live Activities, tomatoes to harvest, statistics and the link with Semestra
@@ -16,6 +16,7 @@ Paradeiser 1.0 is the first version. Development started on 21 November 2026; it
 - **Live Activity:** The running interval on the Lock Screen and in the Dynamic Island, with its progress, the time left and buttons to reset, pause, resume and skip.
 - **Chimes and notifications** when a round or a break ends.
 - **English and German.**
+- **Icon and color:** A tomato on ruby, and ruby as the app's color.
 
 ### Semestra and Paradeiser
 
@@ -29,5 +30,6 @@ Paradeiser 1.0 is the first version. Development started on 21 November 2026; it
 - **Statistics:** Focus time per day and week, the harvest basket, milestones and a weekly recap.
 - **Focus tags and a daily goal.**
 - **Apple Calendar and Apple Health:** Log finished sessions as events and as Mindful Minutes.
-- **More app icons, accent colors and chimes**, unlocked by milestones.
+- **Accent colors:** Eight to choose from, shared with Semestra and Muninn.
+- **More chimes**, unlocked by milestones.
 - **Three ways to get it:** monthly, yearly with a free week, or a one-time purchase.

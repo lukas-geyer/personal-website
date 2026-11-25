@@ -263,9 +263,10 @@ def accent_css(site: dict) -> str:
 
 def favicon_svg(site: dict) -> str:
     """A neutral mark for the site: one dot per app, in the apps' accent colours."""
+    places = ((16, 10.4), (9.8, 21), (22.2, 21))
     dots = "".join(
-        f'<circle cx="{8 + 8 * i}" cy="16" r="2.6" fill="{site[key]["accent"]["dark"]}"/>'
-        for i, key in enumerate(APP_KEYS)
+        f'<circle cx="{x}" cy="{y}" r="3.7" fill="{site[key]["accent"]["dark"]}"/>'
+        for (x, y), key in zip(places, APP_KEYS)
     )
     return (
         '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">'

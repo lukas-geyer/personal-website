@@ -16,8 +16,11 @@
             (black, one dark grey surface, near-white text). The page follows the system setting.
             One accent per app, from site.json: build.py writes them at the end of this file as
             .app-<name> { --accent; --on-accent }. Without an app, the accent is the text colour,
-            so the start page, About and the imprint stay black, white and grey.
+            so the start page, About and the imprint stay black, white and grey. On the start
+            page an app's accent is only the tint of its tile.
             Green appears only in the "On the App Store" chip.
+            Every pair of text and background meets WCAG AA (4.5:1). Semestra's teal is the
+            tightest: it passes on white, so accent-coloured text never sits on a tint.
 
   Space     Steps of 4 px: 4, 8, 12, 16, 24, 32, 48, 64, 96. Sections are 72 to 136 px apart.
             Content is at most 1080 px wide, reading text at most 680 px.
@@ -41,7 +44,7 @@
   --bg: #ffffff;
   --surface: #f5f5f7;
   --text: #1d1d1f;
-  --text-2: #6e6e73;
+  --text-2: #68686d;
   --hairline: #d2d2d7;
   --nav-bg: rgba(255, 255, 255, 0.72);
   --nav-line: rgba(0, 0, 0, 0.1);
@@ -51,7 +54,8 @@
   --live-text: #0b5c26;
   --bezel: #1d1d1f;
   --bezel-line: transparent;
-  --tint: 7%;
+  --tint: 8%;
+  --tint-base: #ffffff;
 
   --accent: var(--text);
   --on-accent: var(--bg);
@@ -87,6 +91,7 @@
     --bezel: #000000;
     --bezel-line: #48484a;
     --tint: 16%;
+    --tint-base: #161617;
   }
 }
 
@@ -270,6 +275,7 @@ a { color: var(--accent); text-decoration: none; }
 }
 @media (max-width: 349px) {
   .nav { position: static; }
+  .nav-links { margin-left: -7px; }
 }
 
 /* ------------------------------------------------------------ Hero */
@@ -286,7 +292,7 @@ a { color: var(--accent); text-decoration: none; }
 .hero--app {
   padding-top: clamp(48px, 7vw, 88px);
   padding-bottom: clamp(8px, 2vw, 24px);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) calc(var(--tint) * 1.4), var(--bg)), var(--bg));
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) calc(var(--tint) * 1.25), var(--bg)), var(--bg) 60%);
 }
 .hero--app .icon { width: clamp(88px, 12vw, 112px); margin-bottom: clamp(20px, 3vw, 28px); }
 .hero-line {
@@ -307,6 +313,8 @@ a { color: var(--accent); text-decoration: none; }
 }
 .hero-actions .more { display: inline-flex; align-items: center; min-height: 44px; }
 .hero-status { margin-top: 16px; }
+/* Where an app is not out yet, its status stands where the button would. */
+.hero-actions .chip { min-height: 36px; padding-inline: 16px; font-size: 15px; }
 
 /* ------------------------------------------------------------ Buttons and chips */
 
@@ -384,7 +392,7 @@ span.icon { display: grid; place-items: center; }
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--surface);
-  background: color-mix(in srgb, var(--accent) var(--tint), var(--surface));
+  background: color-mix(in srgb, var(--accent) var(--tint), var(--tint-base));
   text-align: center;
   transition: opacity 0.7s var(--ease-out), transform 0.5s var(--ease-out);
 }
@@ -417,7 +425,7 @@ span.icon { display: grid; place-items: center; }
   gap: 0 28px;
   margin-top: 12px;
 }
-.tile-links .more { display: inline-flex; align-items: center; min-height: 44px; }
+.tile-links .more { display: inline-flex; align-items: center; min-height: 44px; color: var(--text); }
 /* The whole tile leads to the app's page; the App Store link stays its own target. */
 .tile-link::before { content: ""; position: absolute; inset: 0; }
 .tile-links .more--out { position: relative; }
@@ -487,6 +495,7 @@ span.icon { display: grid; place-items: center; }
   font-size: clamp(17px, 2vw, 21px);
   line-height: 1.45;
   color: var(--text-2);
+  text-wrap: balance;
 }
 .feature-media {
   display: flex;

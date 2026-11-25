@@ -6,7 +6,7 @@ platform: Rust Core · iOS & macOS (planned)
 highlights: Foundational muninn-core Rust workspace, collection data model, and FSRS-7 spaced-repetition scheduler
 ---
 
-Muninn is currently in **Phase 1: Core + CLI**, establishing a fast, portable foundation before layering native apps on top.
+**Phase 1: Core** laid a fast, portable foundation before the native apps. It was finished on 24 November 2026.
 
 ### What's Built
 
@@ -16,4 +16,4 @@ Muninn is currently in **Phase 1: Core + CLI**, establishing a fast, portable fo
 
 ### Up Next
 
-Generated Swift bindings and the first native SwiftUI client for iOS and macOS, followed by cross-device sync and native Android, Windows, and Linux apps.
+The first native app for iPhone (see version 0.2), then macOS, followed by cross-device sync and native Android, Windows, and Linux apps.

@@ -3,7 +3,8 @@
   "url": "https://lukasgeyer.com",
   "kicker": "Apps for Studying",
   "tagline": "Semestra, Paradeiser and Muninn: calm, private apps for studying, built by Lukas Geyer.",
-  "intro": "I build calm, private apps for studying: Semestra plans your study time around your lectures, Paradeiser keeps you focused in intervals, and Muninn will help you remember. No accounts, no ads, no tracking.",
+  "headline": "Calm, private apps that help you study.",
+  "intro": "Semestra plans your study time around your lectures, Paradeiser keeps you focused in intervals, and Muninn will help you remember. No accounts, no ads, no tracking.",
   "email": "lukas.geyer03@icloud.com",
   "links": [
     {
@@ -15,14 +16,6 @@
       "url": "/rss.xml"
     }
   ],
-  "newsletter": {
-    "heading": "Letters & New Stories",
-    "description": "Receive new short stories, longform essays, and occasional Semestra release notes by email.",
-    "action_url": "",
-    "email_field": "email",
-    "button_label": "Subscribe",
-    "footnote": "Sent only when something new is published. Unsubscribe anytime."
-  },
   "semestra": {
     "name": "Semestra",
     "subtitle": "Study Planner for iPhone & iPad",
@@ -32,7 +25,58 @@
     "platforms": "iPhone · iPad",
     "pricing": "Free · Semestra Plus arrives with version 2.0",
     "status": "On the App Store · v1.0",
-    "accent": "semestra"
+    "accent": {
+      "light": "#007F82",
+      "dark": "#4BC2C6"
+    },
+    "icon": "semestra-icon.png",
+    "tile_shot": {
+      "file": "semestra-01-plan.jpg",
+      "alt": "Semestra's plan: study blocks placed between lectures"
+    },
+    "features_title": "What Semestra Does",
+    "features": [
+      {
+        "title": "Timetable in, plan out",
+        "text": "Subscribe to the calendar link from your university portal or import an .ics file. Semestra finds the free time in your week and plans your study blocks into it.",
+        "shots": [
+          {
+            "file": "semestra-01-plan.jpg",
+            "alt": "Semestra's plan: study blocks placed between lectures"
+          }
+        ]
+      },
+      {
+        "title": "Exams, detected",
+        "text": "Exams in your timetable are recognised and added with one tap, each with its study hours, preparation time and priority."
+      },
+      {
+        "title": "A plan that keeps up",
+        "text": "When a lecture or an exam moves, the plan adjusts by itself. Finish, move or skip a block and it recalculates."
+      },
+      {
+        "title": "Always in view",
+        "text": "A reminder before each block, and the running block on the Lock Screen and in the Dynamic Island."
+      },
+      {
+        "title": "Works with your calendar",
+        "text": "Your appointments stay free, and study blocks can go into a calendar of their own."
+      },
+      {
+        "title": "Coming with 2.0",
+        "text": "A guided setup, a week view, registration deadlines, widgets, Semestra Plus and the link with Paradeiser. See the changelog below.",
+        "shots": [
+          {
+            "file": "semestra-02-week.jpg",
+            "alt": "Semestra's week view with lectures and study blocks"
+          },
+          {
+            "file": "semestra-05-statistics.jpg",
+            "alt": "Semestra's statistics with progress, streak and milestones"
+          }
+        ]
+      }
+    ]
   },
   "paradeiser": {
     "name": "Paradeiser",
@@ -41,7 +85,62 @@
     "summary": "Paradeiser is a calm interval timer for focused study and work: set your focus blocks and breaks, follow along on the Lock Screen, and grow a tomato for every round you finish.",
     "support_email": "lukas.geyer03@icloud.com",
     "platforms": "iPhone · iPad",
-    "pricing": "Free · Optional Paradeiser Plus"
+    "pricing": "Free · Optional Paradeiser Plus",
+    "accent": {
+      "light": "#B21826",
+      "dark": "#F45249"
+    },
+    "icon": "paradeiser-tomato.png",
+    "icon_style": "artwork",
+    "tile_shot": {
+      "file": "paradeiser-01-timer.jpg",
+      "alt": "Paradeiser's timer with a focus interval under way"
+    },
+    "features_title": "What Paradeiser Does",
+    "features": [
+      {
+        "title": "Your own intervals",
+        "text": "Any combination of focus blocks and breaks, such as three 45-minute blocks with 15-minute breaks, saved as presets you switch with one tap.",
+        "shots": [
+          {
+            "file": "paradeiser-01-timer.jpg",
+            "alt": "Paradeiser's timer with a focus interval under way"
+          }
+        ]
+      },
+      {
+        "title": "Keeps running",
+        "text": "The timer follows the clock, so it stays right when the app is closed or the iPhone is locked."
+      },
+      {
+        "title": "Lock Screen and Dynamic Island",
+        "text": "The running interval as a Live Activity, with buttons to pause, resume and skip."
+      },
+      {
+        "title": "Works with Semestra",
+        "text": "Paradeiser suggests focus and break times for your next study block, and the time counts as studied in your plan."
+      },
+      {
+        "title": "Tomatoes and streaks",
+        "text": "With Paradeiser Plus, every focus round earns tomatoes, days in a row build a streak, and Rest Days protect it.",
+        "shots": [
+          {
+            "file": "paradeiser-04-market.jpg",
+            "alt": "Paradeiser's Tomato Market with Rest Days"
+          }
+        ]
+      },
+      {
+        "title": "Statistics",
+        "text": "With Plus: focus time per day and week, focus tags, a daily goal, and logging to Apple Calendar and Apple Health.",
+        "shots": [
+          {
+            "file": "paradeiser-02-statistics.jpg",
+            "alt": "Paradeiser's statistics with the harvest basket"
+          }
+        ]
+      }
+    ]
   },
   "muninn": {
     "name": "Muninn",
@@ -50,6 +149,29 @@
     "summary": "A spaced-repetition flashcard app as capable as Anki without being a clone of it: one shared Rust core with an FSRS-7 scheduler and lossless Anki deck import, wrapped in fast native apps starting with iOS and macOS.",
     "support_email": "lukas.geyer03@icloud.com",
     "platforms": "iOS · macOS first · Android and desktop planned",
-    "pricing": "Free on every platform · Optional Plus tier"
+    "pricing": "Free on every platform · Optional Plus tier",
+    "accent": {
+      "light": "#472C9C",
+      "dark": "#937AE5"
+    },
+    "features_title": "The Plan for Muninn",
+    "features": [
+      {
+        "title": "One shared core",
+        "text": "A single Rust core holds the collection model, the scheduling and the file format, so every platform behaves the same."
+      },
+      {
+        "title": "FSRS-7 scheduling",
+        "text": "A modern spaced-repetition scheduler tuned for long-term retention, without settings to babysit."
+      },
+      {
+        "title": "Anki decks welcome",
+        "text": "Existing Anki decks are to be imported into clean native card types, keeping their templates so they can go back to Anki unchanged."
+      },
+      {
+        "title": "Native apps",
+        "text": "No web wrappers: iOS and macOS first from one SwiftUI codebase, then Android, Windows and Linux."
+      }
+    ]
   }
 }

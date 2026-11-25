@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-Zero-dependency static site generator for lukasgeyer.com: the pages for Semestra, Paradeiser and
-Muninn with their changelogs, the legal pages, and (when there is some) longform writing.
+Zero-dependency static site generator for lukasgeyer.com: the start page, one page per app
+(Semestra, Paradeiser, Muninn) with its changelog, the privacy policies, the imprint and the feeds.
 Usage: python3 build.py
 """
 
 from __future__ import annotations
 
-import base64
 import datetime
 import email.utils
 import hashlib
@@ -16,48 +15,35 @@ import json
 import pathlib
 import re
 import shutil
+import struct
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).parent
-CONTENT_WRITING = ROOT / "content" / "writing"
-CONTENT_SEMESTRA = ROOT / "content" / "semestra"
-CONTENT_PARADEISER = ROOT / "content" / "paradeiser"
-CONTENT_MUNINN = ROOT / "content" / "muninn"
+CONTENT = ROOT / "content"
 ASSETS = ROOT / "assets"
 DIST = ROOT / "dist"
 
-# Runs in <head> before first paint so a saved (or system dark) theme never flashes.
-# The saved choice always wins; the system preference is only the fallback.
-# Its SHA-256 hash is written into the Content-Security-Policy (see build()).
-THEME_SCRIPT = (
-    "(function(){var t;try{t=localStorage.getItem('site-theme')}catch(e){}"
-    "if(['paper','sepia','dusk'].indexOf(t)<0){"
-    "t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dusk':'paper'}"
-    "document.documentElement.setAttribute('data-theme',t)})()"
-)
+# The apps, in the order they appear in the navigation and on the start page.
+APP_KEYS = ("semestra", "paradeiser", "muninn")
+PRIVACY_PATHS = {
+    "semestra": "/semestra/privacy-policy/",
+    "paradeiser": "/paradeiser/privacy-policy/",
+    "muninn": "/muninn/privacy/",
+}
 
-ICON_SHAPES = """<rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/>
-      <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="1.3"/>
-      <rect x="6" y="12" width="5" height="3" rx="0.8" fill="currentColor"/>
-      <rect x="13" y="12" width="5" height="5" rx="0.8" fill="currentColor" fill-opacity="0.65"/>"""
+# Drawn in place of an app icon while an app has no "icon" in site.json.
+PLACEHOLDER_MARK = """<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <rect x="4" y="6.5" width="13" height="11" rx="2.2" stroke="currentColor" stroke-width="1.5"/>
+  <path d="M8.5 6.5V5.2C8.5 4.5 9 4 9.7 4H18.8C19.5 4 20 4.5 20 5.2V14.3C20 15 19.5 15.5 18.8 15.5H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="7.5" y1="11.5" x2="13.5" y2="11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+</svg>"""
 
-MUNINN_ICON = """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="4" y="6.5" width="13" height="11" rx="2.2" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M8.5 6.5V5.2C8.5 4.5 9 4 9.7 4H18.8C19.5 4 20 4.5 20 5.2V14.3C20 15 19.5 15.5 18.8 15.5H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="7.5" y1="11.5" x2="13.5" y2="11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    </svg>"""
-
-FAVICON_SVG = f"""<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="8" fill="#1F4486"/>
-  <g transform="translate(4 4)" color="#F6F3EC">
-      {ICON_SHAPES}
-  </g>
-</svg>
-"""
+# The page may only load its own files: no third-party scripts, styles, fonts or frames.
+CONTENT_SECURITY_POLICY = "default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
 
 SAFE_HREF = re.compile(r"^(https?://|mailto:|/|#)")
-SCENE_BREAKS = ("***", "---", "* * *")
 ORDERED_ITEM = re.compile(r"^\d+\.\s+")
+HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 # ---------------------------------------------------------------- Markdown
@@ -76,7 +62,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
     return meta, body.strip()
 
 
-def format_inline(text: str, footnotes: dict[str, str]) -> str:
+def format_inline(text: str) -> str:
     out = html.escape(text)
 
     # Park `code` spans so the emphasis rules below cannot touch their contents.
@@ -90,105 +76,63 @@ def format_inline(text: str, footnotes: dict[str, str]) -> str:
         label, url = m.groups()
         if not SAFE_HREF.match(url):
             return m.group(0)
-        return f'<a href="{url}">{label}</a>'
-
-    def _footnote(m: re.Match[str]) -> str:
-        key = m.group(1)
-        if key not in footnotes:
-            return m.group(0)
-        return f'<span class="fn-ref"><a id="fnref-{key}" href="#fn-{key}">[{key}]</a></span>'
+        return f"<a {link_attrs(html.unescape(url))}>{label}</a>"
 
     out = re.sub(r"`([^`]+)`", _stash_code, out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", out)
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _link, out)
-    out = re.sub(r"\[\^([\w-]+)\]", _footnote, out)
     return re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{code_spans[int(m.group(1))]}</code>", out)
 
 
 def starts_block(line: str) -> bool:
-    return (
-        not line
-        or line in SCENE_BREAKS
-        or line.startswith(("## ", "### ", "> ", "- "))
-        or bool(ORDERED_ITEM.match(line))
-    )
+    return not line or line.startswith(("## ", "### ", "- ")) or bool(ORDERED_ITEM.match(line))
 
 
 def render_markdown(md_text: str) -> str:
-    footnotes: dict[str, str] = {}
-    body_lines: list[str] = []
-
-    for line in md_text.splitlines():
-        fn_match = re.match(r"^\[\^([\w-]+)\]:\s*(.+)$", line)
-        if fn_match:
-            footnotes[fn_match.group(1)] = fn_match.group(2).strip()
-        else:
-            body_lines.append(line.strip())
-
-    def inline(text: str) -> str:
-        return format_inline(text, footnotes)
-
+    """The small Markdown subset of the changelogs (see the README). A changelog entry sits
+    under its own title (an h3), so `##` and `###` both become an h4."""
+    lines = [line.strip() for line in md_text.splitlines()]
     blocks: list[str] = []
     i = 0
-    n = len(body_lines)
+    n = len(lines)
 
     while i < n:
-        line = body_lines[i]
+        line = lines[i]
         if not line:
             i += 1
-        elif line in SCENE_BREAKS:
-            blocks.append('<hr class="scene-break" />')
+        elif line.startswith(("## ", "### ")):
+            blocks.append(f"<h4>{format_inline(line.split(' ', 1)[1])}</h4>")
             i += 1
-        elif line.startswith("### "):
-            blocks.append(f"<h3>{inline(line[4:])}</h3>")
-            i += 1
-        elif line.startswith("## "):
-            blocks.append(f"<h2>{inline(line[3:])}</h2>")
-            i += 1
-        elif line.startswith("> "):
-            quote_lines = []
-            while i < n and body_lines[i].startswith("> "):
-                quote_lines.append(inline(body_lines[i][2:]))
-                i += 1
-            blocks.append(f"<blockquote><p>{'<br />'.join(quote_lines)}</p></blockquote>")
         elif line.startswith("- "):
             items = []
-            while i < n and body_lines[i].startswith("- "):
-                items.append(f"<li>{inline(body_lines[i][2:])}</li>")
+            while i < n and lines[i].startswith("- "):
+                items.append(f"<li>{format_inline(lines[i][2:])}</li>")
                 i += 1
             blocks.append("<ul>\n" + "\n".join(items) + "\n</ul>")
         elif ORDERED_ITEM.match(line):
             items = []
-            while i < n and ORDERED_ITEM.match(body_lines[i]):
-                items.append(f"<li>{inline(ORDERED_ITEM.sub('', body_lines[i]))}</li>")
+            while i < n and ORDERED_ITEM.match(lines[i]):
+                items.append(f"<li>{format_inline(ORDERED_ITEM.sub('', lines[i]))}</li>")
                 i += 1
             blocks.append("<ol>\n" + "\n".join(items) + "\n</ol>")
         else:
             para_lines = [line]
             i += 1
-            while i < n and not starts_block(body_lines[i]):
-                para_lines.append(body_lines[i])
+            while i < n and not starts_block(lines[i]):
+                para_lines.append(lines[i])
                 i += 1
-            blocks.append(f"<p>{inline(' '.join(para_lines))}</p>")
-
-    if footnotes:
-        fn_items = "".join(
-            f'<li id="fn-{k}">{inline(v)} '
-            f'<a href="#fnref-{k}" aria-label="Back to content">&crarr;</a></li>'
-            for k, v in footnotes.items()
-        )
-        blocks.append(f'<aside class="footnotes"><ol>{fn_items}</ol></aside>')
+            blocks.append(f"<p>{format_inline(' '.join(para_lines))}</p>")
 
     return "\n".join(blocks)
 
 
 # ---------------------------------------------------------------- Content
 
-def load_entries(folder: pathlib.Path) -> list[dict]:
-    """Read every Markdown file in a folder, newest first. A bad date stops the build."""
+def load_updates(key: str) -> list[dict]:
+    """Read an app's changelog entries (content/<app>/*.md), newest first. A bad date stops the build."""
     items = []
-    for path in sorted(folder.glob("*.md")):
+    for path in sorted((CONTENT / key).glob("*.md")):
         meta, body = parse_frontmatter(path.read_text(encoding="utf-8"))
         try:
             date = datetime.date.fromisoformat(meta.get("date", ""))
@@ -199,10 +143,15 @@ def load_entries(folder: pathlib.Path) -> list[dict]:
             ) from None
         items.append(
             {
+                "version": "1.0",
+                "platform": "iOS",
+                "highlights": "",
+                "status": "",
                 **meta,
                 "slug": path.stem,
                 "title": meta.get("title", path.stem),
                 "date": date,
+                "url": f"/{key}/#{path.stem}",
                 "body_html": render_markdown(body),
             }
         )
@@ -210,172 +159,30 @@ def load_entries(folder: pathlib.Path) -> list[dict]:
     return items
 
 
-def load_writings() -> list[dict]:
-    items = load_entries(CONTENT_WRITING)
-    for w in items:
-        w["kind"] = w.get("kind", "story").lower()
-        w["kind_label"] = "Short Story" if w["kind"] == "story" else "Longform Essay"
-        w["url"] = f"/writing/{w['slug']}.html"
-        for key, default in (("subtitle", ""), ("excerpt", ""), ("reading_time", "5 min")):
-            w.setdefault(key, default)
-    return items
+def image_size(name: str) -> tuple[int, int]:
+    """Width and height of a PNG or JPEG in assets/img/, read from the file itself, so that a
+    replaced image gets the right width and height attributes without anyone typing numbers."""
+    path = ASSETS / "img" / name
+    if not path.is_file():
+        raise SystemExit(f"site.json names the image {name!r}, but assets/img/{name} does not exist")
+    data = path.read_bytes()
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        width, height = struct.unpack(">II", data[16:24])
+        return width, height
+    if data[:2] == b"\xff\xd8":
+        i = 2
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                break
+            marker = data[i + 1]
+            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+                height, width = struct.unpack(">HH", data[i + 5:i + 9])
+                return width, height
+            i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+    raise SystemExit(f"assets/img/{name}: only PNG and JPEG images are understood")
 
 
-def load_app_updates(folder: pathlib.Path, base_path: str) -> list[dict]:
-    if not folder.exists():
-        return []
-    items = load_entries(folder)
-    for u in items:
-        u["url"] = f"{base_path}#{u['slug']}"
-        for key, default in (("version", "1.0"), ("platform", "iOS"), ("highlights", "")):
-            u.setdefault(key, default)
-    return items
-
-
-def load_semestra_updates() -> list[dict]:
-    return load_app_updates(CONTENT_SEMESTRA, "/semestra/")
-
-
-def render_changelog_section(updates: list[dict]) -> str:
-    release_label = "1 Version" if len(updates) == 1 else f"{len(updates)} Versions"
-    changelog_blocks = "".join(
-        f"""<article class="changelog-entry" id="{u['slug']}">
-  <aside class="changelog-aside">
-    <div class="changelog-version">Version {html.escape(u['version'])}</div>
-    <div>{status_pill(u['status']) if u.get('status') else ''}</div>
-    <div class="changelog-date">{'Updated ' if u.get('status', '').lower().startswith('in dev') else ''}{time_tag(u['date'])}</div>
-    <div class="changelog-platform">{html.escape(u['platform'])}</div>
-  </aside>
-  <div>
-    <h2 class="changelog-title">{html.escape(u['title'])}</h2>
-    <div class="changelog-body">
-      {u['body_html']}
-    </div>
-  </div>
-</article>"""
-        for u in updates
-    )
-    return f"""
-    <section id="changelog">
-      <div class="section-bar">
-        <span class="section-label">Changelog</span>
-        <span class="section-label">{release_label}</span>
-      </div>
-      {changelog_blocks}
-    </section>
-    """
-
-
-# ---------------------------------------------------------------- App pieces
-
-APP_KEYS = ("semestra", "paradeiser", "muninn")
-
-APP_SHOTS = {
-    "semestra": [
-        ("semestra-01-plan.jpg", "Semestra's plan: study blocks placed between lectures"),
-        ("semestra-02-week.jpg", "Semestra's week view with lectures and study blocks"),
-        ("semestra-05-statistics.jpg", "Semestra's statistics with progress, streak and milestones"),
-    ],
-    "paradeiser": [
-        ("paradeiser-01-timer.jpg", "Paradeiser's timer with a focus interval under way"),
-        ("paradeiser-02-statistics.jpg", "Paradeiser's statistics with the harvest basket"),
-        ("paradeiser-04-market.jpg", "Paradeiser's Tomato Market with Rest Days"),
-    ],
-}
-
-
-def app_mark(key: str) -> str:
-    """The app's icon: the real artwork where there is one, a drawn mark otherwise."""
-    if key == "semestra":
-        return '<img class="app-icon" src="/img/semestra-icon.png" width="56" height="56" alt="" />'
-    if key == "paradeiser":
-        return (
-            '<span class="app-icon app-icon--paradeiser">'
-            '<img src="/img/paradeiser-tomato.png" width="44" height="44" alt="" /></span>'
-        )
-    return f'<span class="app-icon app-icon--muninn">{MUNINN_ICON}</span>'
-
-
-def status_pill(text: str) -> str:
-    live = text.lower().startswith("on the app store")
-    cls = "status-pill status-pill--live" if live else "status-pill"
-    return f'<span class="{cls}">{html.escape(text)}</span>'
-
-
-def app_identity(app: dict, key: str, title_tag: str = "h2") -> str:
-    return f"""<div class="app-identity">
-          {app_mark(key)}
-          <div>
-            <{title_tag} class="app-name">{html.escape(app['name'])}</{title_tag}>
-            <div class="app-sub">{html.escape(app['subtitle'])}</div>
-          </div>
-        </div>"""
-
-
-def app_shots(key: str) -> str:
-    shots = APP_SHOTS.get(key)
-    if not shots:
-        return ""
-    figures = "".join(
-        f'<figure class="shot"><img src="/img/{name}" width="598" height="1300" loading="lazy" alt="{html.escape(alt)}" /></figure>'
-        for name, alt in shots
-    )
-    return f'<div class="shot-row" aria-label="Screenshots">{figures}</div>'
-
-
-def feature_grid(label: str, features: list[tuple[str, str]]) -> str:
-    items = "".join(
-        f'<div class="feature-card"><h3>{title}</h3><p>{text}</p></div>' for title, text in features
-    )
-    return f"""
-    <section class="feature-section" aria-label="{label}">
-      <div class="section-bar"><span class="section-label">{label}</span></div>
-      <div class="feature-grid">{items}</div>
-    </section>"""
-
-
-def app_page(*, app: dict, key: str, store_button: str, privacy_url: str, email: str,
-             features_label: str, features: list[tuple[str, str]], updates: list[dict], extra: str = "") -> str:
-    """One product page: identity and summary beside the screenshots, features, then the changelog."""
-    shots = app_shots(key)
-    hero_cls = "app-hero" if shots else "app-hero app-hero--single"
-    return f"""
-    <div class="app-page app-page--{key}">
-    <section class="{hero_cls}">
-      <div class="app-hero-text">
-        {app_identity(app, key, title_tag="h1")}
-        <div class="app-hero-status">{status_pill(app.get('status', ''))}</div>
-        <p class="intro-copy">{html.escape(app['summary'])}</p>
-        <div class="action-row">
-          {store_button}
-          <a href="#changelog" class="btn-outline">Changelog</a>
-        </div>
-        <dl class="app-facts">
-          <div><dt>Runs on</dt><dd>{html.escape(app['platforms'])}</dd></div>
-          <div><dt>Price</dt><dd>{html.escape(app['pricing'])}</dd></div>
-          <div><dt>Support</dt><dd><a href="mailto:{email}">{email}</a></dd></div>
-          <div><dt>Privacy</dt><dd><a href="{privacy_url}">Privacy Policy</a></dd></div>
-        </dl>
-      </div>
-      {shots}
-    </section>
-    {feature_grid(features_label, features)}
-    {extra}
-    {render_changelog_section(updates)}
-    </div>
-    """
-
-
-PRINCIPLES = """
-    <section class="principles" aria-label="Principles">
-      <div><h3>No account</h3><p>Open the app and start. There is nothing to sign up for.</p></div>
-      <div><h3>No ads, no tracking</h3><p>No analytics tools and no advertising, in any of the apps.</p></div>
-      <div><h3>On your device</h3><p>Your data stays on your iPhone, or in your own iCloud if you turn sync on.</p></div>
-      <div><h3>German and English</h3><p>Made in Graz, for students in Austria, Germany and Switzerland.</p></div>
-    </section>"""
-
-
-# ---------------------------------------------------------------- Template pieces
+# ---------------------------------------------------------------- Small pieces
 
 def time_tag(date: datetime.date) -> str:
     return f'<time datetime="{date.isoformat()}">{date:%b} {date.day}, {date.year}</time>'
@@ -394,95 +201,93 @@ def link_attrs(url: str) -> str:
     return attrs
 
 
-def writing_row(w: dict, blurb: str) -> str:
-    return f"""<a href="{w['url']}" class="writing-entry" data-kind="{html.escape(w['kind'])}">
-  <div class="entry-meta">
-    {time_tag(w['date'])}
-    <span class="entry-kind">{w['kind_label']}</span>
-  </div>
-  <div>
-    <h2 class="entry-title">{html.escape(w['title'])}</h2>
-    <p class="entry-excerpt">{html.escape(blurb)}</p>
-  </div>
-  <span class="entry-time">{html.escape(w['reading_time'])}</span>
-</a>"""
+def is_live(status: str) -> bool:
+    return status.lower().startswith("on the app store")
 
 
-FILTER_TABS = """<div class="filter-tabs" role="group" aria-label="Filter writing">
-          <button class="filter-btn active" data-kind="all" type="button" aria-pressed="true">All</button>
-          <button class="filter-btn" data-kind="story" type="button" aria-pressed="false">Stories</button>
-          <button class="filter-btn" data-kind="essay" type="button" aria-pressed="false">Essays</button>
-        </div>"""
+def chip(status: str) -> str:
+    """The status chip: green for "On the App Store", grey for anything else."""
+    if not status:
+        return ""
+    cls = "chip chip--live" if is_live(status) else "chip"
+    return f'<span class="{cls}">{html.escape(status)}</span>'
 
 
-def article_nav_link(item: dict | None, label: str, cls: str = "") -> str:
-    if not item:
-        return "<div></div>"
-    cls_attr = f' class="{cls}"' if cls else ""
+def app_icon(key: str, app: dict, size: int, transition: bool = False) -> str:
+    """The app's icon from site.json ("icon", a file in assets/img/). "icon_style": "artwork" sets
+    a picture that is not a finished icon on a light tile; without "icon" a placeholder is drawn.
+    `transition` names the icon so that it glides between the start page and the app's page."""
+    cls = "icon" + (f" vt-icon-{key}" if transition else "")
+    name = app.get("icon")
+    if not name:
+        return f'<span class="{cls} icon--mark">{PLACEHOLDER_MARK}</span>'
+    img = f'<img src="/img/{html.escape(name)}" width="{size}" height="{size}" alt="" />'
+    if app.get("icon_style") == "artwork":
+        return f'<span class="{cls} icon--artwork">{img}</span>'
+    return img.replace("<img ", f'<img class="{cls}" ', 1)
+
+
+def device(shot: dict, lazy: bool = True) -> str:
+    """A screenshot in a rounded, device-like frame drawn by the stylesheet."""
+    width, height = image_size(shot["file"])
+    loading = ' loading="lazy" decoding="async"' if lazy else ""
     return (
-        f'<a href="{item["url"]}"{cls_attr}><div class="article-nav-label">{label}</div>'
-        f'<div class="article-nav-title">{html.escape(item["title"])}</div></a>'
+        f'<figure class="device"><div class="device-frame">'
+        f'<img src="/img/{html.escape(shot["file"])}" width="{width}" height="{height}"{loading} '
+        f'alt="{html.escape(shot["alt"])}" /></div></figure>'
     )
 
 
-def render_newsletter(site: dict, compact: bool = False) -> str:
-    nl = site.get("newsletter") or {}
-    action = nl.get("action_url", "").strip()
-    if not action:
-        return ""
-    cls = "newsletter-band compact" if compact else "newsletter-band"
+def accent_css(site: dict) -> str:
+    """The apps' accent colours from site.json, written as the last rules of the stylesheet."""
+    light, dark = [], []
+    for key in APP_KEYS:
+        accent = site[key].get("accent") or {}
+        for mode in ("light", "dark"):
+            if not HEX_COLOR.match(accent.get(mode, "")):
+                raise SystemExit(f'site.json: {key} needs "accent": {{"light": "#RRGGBB", "dark": "#RRGGBB"}}')
+        light.append(f".app-{key} {{ --accent: {accent['light']}; --on-accent: #fff; }}")
+        dark.append(f"  .app-{key} {{ --accent: {accent['dark']}; --on-accent: #000; }}")
+    glide = [f"  .vt-icon-{key} {{ view-transition-name: icon-{key}; }}" for key in APP_KEYS]
+    return (
+        "\n/* App accents, written by build.py from site.json. */\n"
+        + "\n".join(light)
+        + "\n@media (prefers-color-scheme: dark) {\n"
+        + "\n".join(dark)
+        + "\n}\n/* Each app's icon glides from the start page to its own page. */\n"
+        + "@media (prefers-reduced-motion: no-preference) {\n"
+        + "\n".join(glide)
+        + "\n}\n"
+    )
 
-    if action.lower() == "netlify":
-        form_attrs = 'name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" data-newsletter-mode="netlify"'
-        hidden_input = (
-            '<input type="hidden" name="form-name" value="newsletter" />'
-            '<p hidden><label>Leave blank: <input name="bot-field" /></label></p>'
-        )
-    else:
-        form_attrs = f'action="{html.escape(action)}" method="post" target="_blank"'
-        hidden_input = ""
 
-    return f"""
-    <section class="{cls}" aria-label="Newsletter signup">
-      <div>
-        <div class="section-label">Dispatches</div>
-        <h2 class="newsletter-title">{html.escape(nl.get('heading', 'Newsletter'))}</h2>
-        <p class="newsletter-desc">{html.escape(nl.get('description', ''))}</p>
-      </div>
-      <div>
-        <form class="newsletter-form" {form_attrs}>
-          {hidden_input}
-          <input
-            class="newsletter-input"
-            type="email"
-            name="{html.escape(nl.get('email_field', 'email'))}"
-            placeholder="you@example.com"
-            aria-label="Email address"
-            required
-          />
-          <button class="newsletter-btn" type="submit">{html.escape(nl.get('button_label', 'Subscribe'))}</button>
-        </form>
-        <div class="newsletter-footnote">{html.escape(nl.get('footnote', ''))}</div>
-        <div class="newsletter-status" role="status" aria-live="polite"></div>
-      </div>
-    </section>
-    """
+def favicon_svg(site: dict) -> str:
+    """A neutral mark for the site: one dot per app, in the apps' accent colours."""
+    dots = "".join(
+        f'<circle cx="{8 + 8 * i}" cy="16" r="2.6" fill="{site[key]["accent"]["dark"]}"/>'
+        for i, key in enumerate(APP_KEYS)
+    )
+    return (
+        '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">'
+        f'<rect width="32" height="32" rx="7.2" fill="#1d1d1f"/>{dots}</svg>\n'
+    )
 
+
+# ---------------------------------------------------------------- Page shell
 
 def page_layout(
     *,
     title: str,
     site: dict,
     path: str | None,
-    active_nav: str,
     content_html: str,
+    app_key: str = "",
     description: str = "",
-    has_writing: bool = False,
-    og_type: str = "website",
-    show_progress: bool = False,
+    asset_version: str = "",
 ) -> str:
-    """Wrap page content in the shared shell. `path` is the page's URL path
-    (e.g. "/writing/"); pass None for pages that should not be indexed (404)."""
+    """Wrap page content in the shared shell. `path` is the page's URL path (e.g. "/semestra/");
+    pass None for pages that should not be indexed (404). `app_key` gives the page its app's accent
+    and marks the app in the navigation; the start page, About and the imprint stay neutral."""
     name = html.escape(site["name"])
     title_attr = html.escape(title)
     desc_attr = html.escape(description or site.get("tagline", ""))
@@ -492,7 +297,7 @@ def page_layout(
         f'<meta name="description" content="{desc_attr}" />',
         f'<meta property="og:title" content="{title_attr}" />',
         f'<meta property="og:description" content="{desc_attr}" />',
-        f'<meta property="og:type" content="{og_type}" />',
+        '<meta property="og:type" content="website" />',
         f'<meta property="og:site_name" content="{name}" />',
         '<meta name="twitter:card" content="summary" />',
     ]
@@ -503,338 +308,364 @@ def page_layout(
         head_meta.append(f'<meta property="og:url" content="{page_url}" />')
         head_meta.append(f'<link rel="canonical" href="{page_url}" />')
 
-    footer_links = " ".join(
-        f'<a {link_attrs(link["url"])}>{html.escape(link["label"])}</a>'
-        for link in site.get("links", [])
-    )
-    progress_html = (
-        '<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>'
-        if show_progress
-        else ""
-    )
+    def nav_link(key: str) -> str:
+        current = ' aria-current="page"' if app_key == key else ""
+        return f'<a href="/{key}/"{current}>{html.escape(site[key]["name"])}</a>'
 
-    def nav_attrs(key: str) -> str:
-        return ' class="active" aria-current="page"' if active_nav == key else ""
+    def footer_list(label: str, links: list[tuple[str, str]]) -> str:
+        items = "".join(f"<li><a {link_attrs(url)}>{html.escape(text)}</a></li>" for text, url in links)
+        return f'<div class="footer-col"><p class="footer-title">{label}</p><ul>{items}</ul></div>'
 
-    # The Writing section only shows while there is something in it.
-    writing_nav = f'<a href="/writing/"{nav_attrs("writing")}>Writing</a>' if has_writing else ""
+    footer = (
+        footer_list("Apps", [(site[key]["name"], f"/{key}/") for key in APP_KEYS])
+        + footer_list(
+            "Legal",
+            [("Imprint", "/imprint/")]
+            + [(f'{site[key]["name"]} Privacy', PRIVACY_PATHS[key]) for key in APP_KEYS],
+        )
+        + footer_list(
+            "Contact",
+            [("About", "/about/"), ("Email", f"mailto:{site['email']}")]
+            + [(link["label"], link["url"]) for link in site.get("links", [])],
+        )
+    )
+    body_class = f' class="app-{app_key}"' if app_key else ""
 
     return f"""<!DOCTYPE html>
-<html lang="en" data-theme="paper">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script>{THEME_SCRIPT}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="{CONTENT_SECURITY_POLICY}" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <title>{title_attr}</title>
   {chr(10).join('  ' + tag for tag in head_meta).strip()}
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css{asset_version}" />
   <link rel="alternate" type="application/rss+xml" title="{name} RSS" href="/rss.xml" />
-  <script src="/reader.js" defer></script>
+  <script src="/site.js{asset_version}" defer></script>
 </head>
-<body>
+<body{body_class}>
   <a class="skip-link" href="#main">Skip to content</a>
-  {progress_html}
-  <div class="page-shell">
-    <header class="masthead">
-      <a href="/" class="site-brand">{name}</a>
-      <div class="nav-group">
-        <nav class="nav-links" aria-label="Primary">
-          <a href="/semestra/"{nav_attrs("semestra")}>Semestra</a>
-          <a href="/paradeiser/"{nav_attrs("paradeiser")}>Paradeiser</a>
-          <a href="/muninn/"{nav_attrs("muninn")}>Muninn</a>
-          {writing_nav}
-          <a href="/about/"{nav_attrs("about")}>About</a>
-        </nav>
-        <button class="theme-toggle" id="themeCycleBtn" type="button">Theme: Paper</button>
-      </div>
-    </header>
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">{name}</a>
+      <nav class="nav-links" aria-label="Apps">
+        {''.join(nav_link(key) for key in APP_KEYS)}
+      </nav>
+    </div>
+  </header>
 
-    <main id="main">
-    {content_html}
-    </main>
+  <main id="main">
+  {content_html}
+  </main>
 
-    <footer class="site-footer">
-      <div class="footer-top">
-        <span>&copy; {datetime.date.today().year} {name}</span>
-        <div class="footer-links">
-          <a href="mailto:{html.escape(site['email'])}">Email</a>
-          {footer_links}
-        </div>
-      </div>
-      <div class="footer-legal" aria-label="Legal">
-        <a href="/imprint/">Imprint</a>
-        <a href="/semestra/privacy-policy/">Semestra Privacy</a>
-        <a href="/paradeiser/privacy-policy/">Paradeiser Privacy</a>
-        <a href="/muninn/privacy/">Muninn Privacy</a>
-      </div>
-    </footer>
-  </div>
+  <footer class="footer">
+    <div class="wrap">
+      <nav class="footer-cols" aria-label="Footer">
+        {footer}
+      </nav>
+      <p class="footer-note">&copy; {datetime.date.today().year} {name}</p>
+    </div>
+  </footer>
 </body>
 </html>
 """
 
 
-# ---------------------------------------------------------------- Build
+# ---------------------------------------------------------------- Start page
 
-def build() -> None:
-    site = json.loads((ROOT / "site.json").read_text(encoding="utf-8"))
-    writings = load_writings()
-    updates = load_semestra_updates()
-    paradeiser_updates = load_app_updates(CONTENT_PARADEISER, "/paradeiser/")
-    muninn_updates = load_app_updates(CONTENT_MUNINN, "/muninn/")
-    sem = site["semestra"]
-    site_url = site.get("url", "").rstrip("/")
-
-    shutil.rmtree(DIST, ignore_errors=True)
-    shutil.copytree(ASSETS, DIST)  # everything in assets/ is published as-is
-    for folder in (
-        *(["writing"] if writings else []),
-        "semestra",
-        "semestra/privacy-policy",
-        "paradeiser",
-        "paradeiser/privacy",
-        "paradeiser/privacy-policy",
-        "muninn",
-        "muninn/privacy",
-        "imprint",
-        "about",
-    ):
-        (DIST / folder).mkdir(parents=True, exist_ok=True)
-    (DIST / "favicon.svg").write_text(FAVICON_SVG, encoding="utf-8")
-
-    def write_page(file: str, **kwargs) -> None:
-        (DIST / file).write_text(page_layout(site=site, has_writing=bool(writings), **kwargs), encoding="utf-8")
-
-    # 1. Home Page (dist/index.html)
-    all_updates = sorted(
-        [dict(u, app=site[key]["name"], app_key=key) for key, items in (
-            ("semestra", updates), ("paradeiser", paradeiser_updates), ("muninn", muninn_updates)) for u in items],
-        key=lambda u: u["date"], reverse=True,
-    )
-    update_rows = "".join(
-        f"""<a href="{u['url']}" class="update-row">
-  <span class="update-app update-app--{u['app_key']}">{html.escape(u['app'])} {html.escape(u['version'])}</span>
-  <span class="update-title">{html.escape(u['title'])}</span>
-  <span class="update-date">{time_tag(u['date'])}</span>
-</a>"""
-        for u in all_updates[:5]
-    )
-
-    def app_card(key: str) -> str:
-        app = site[key]
-        shots = APP_SHOTS.get(key)
-        visual = (
-            f'<div class="app-card-visual"><img src="/img/{shots[0][0]}" width="598" height="1300" loading="lazy" alt="{html.escape(shots[0][1])}" /></div>'
-            if shots
-            else f'<div class="app-card-visual app-card-visual--mark">{MUNINN_ICON}</div>'
-        )
-        return f"""<a href="/{key}/" class="app-card app-card--{key}">
-  {visual}
-  <div class="app-card-body">
-    {app_identity(app, key)}
-    {status_pill(app.get('status', ''))}
-    <p class="app-card-summary">{html.escape(app['summary'])}</p>
-    <span class="app-card-more">More about {html.escape(app['name'])} &rarr;</span>
-  </div>
-</a>"""
-
-    writing_section = (
-        f"""
-    <section aria-label="Writing">
-      <div class="section-bar">
-        <span class="section-label">Recent Writing</span>
-        {FILTER_TABS}
-      </div>
-      <div class="writing-list">
-        {''.join(writing_row(w, w['excerpt']) for w in writings)}
-      </div>
-    </section>"""
-        if writings
+def home_tile(site: dict, key: str, first: bool) -> str:
+    """One app on the start page: icon, name, one line, its status and the way into its page."""
+    app = site[key]
+    name = html.escape(app["name"])
+    shot = app.get("tile_shot")
+    store = (
+        f'<a class="more more--out" {link_attrs(app["app_store_url"])}>View on the App Store</a>'
+        if app.get("app_store_url")
         else ""
     )
+    visual = f'<div class="tile-visual">{device(shot, lazy=not first)}</div>' if shot else ""
+    cls = "tile" + (" tile--wide" if first else "") + ("" if shot else " tile--plain")
+    return f"""<article class="{cls} app-{key}" data-reveal>
+  <div class="tile-text">
+    {app_icon(key, app, 72, transition=True)}
+    <h2 class="tile-name">{name}</h2>
+    <p class="tile-line">{html.escape(app['subtitle'])}</p>
+    <p>{chip(app.get('status', ''))}</p>
+    <p class="tile-links"><a class="more tile-link" href="/{key}/">More about {name}</a>{store}</p>
+  </div>
+  {visual}
+</article>"""
 
-    home_content = f"""
-    <section class="intro-band">
-      <div class="kicker">{html.escape(site['kicker'])}</div>
-      <h1 class="display-title">
-        Calm, <em>private</em> apps that help you study.
-      </h1>
-      <p class="intro-copy">{html.escape(site['intro'])}</p>
-    </section>
 
-    <section aria-label="Apps">
-      <div class="section-bar"><span class="section-label">The Apps</span></div>
-      <div class="app-cards">
-        {''.join(app_card(key) for key in APP_KEYS)}
+def home_page(site: dict, updates: dict[str, list[dict]]) -> str:
+    latest = sorted(
+        (dict(u, app=site[key]["name"]) for key in APP_KEYS for u in updates[key]),
+        key=lambda u: u["date"],
+        reverse=True,
+    )[:5]
+    update_rows = "".join(
+        f"""<li><a href="{u['url']}" class="update">
+  <span class="update-app">{html.escape(u['app'])} {html.escape(u['version'])}</span>
+  <span class="update-title">{html.escape(u['title'])}</span>
+  <span class="update-date">{time_tag(u['date'])}</span>
+</a></li>"""
+        for u in latest
+    )
+    sem, par = site["semestra"], site["paradeiser"]
+    return f"""
+    <section class="hero hero--home">
+      <div class="wrap">
+        <p class="eyebrow">{html.escape(site['kicker'])}</p>
+        <h1 class="display">{html.escape(site['headline'])}</h1>
+        <p class="lead">{html.escape(site['intro'])}</p>
       </div>
     </section>
 
-    <section class="suite-band" aria-label="Semestra and Paradeiser together">
-      <div>
-        <div class="section-label">Better Together</div>
-        <h2 class="suite-title">Semestra plans the block. Paradeiser times it.</h2>
-        <p>When a study block is coming up in Semestra, Paradeiser suggests focus and break times that fit it. What you study there counts as studied in your plan. The two apps only talk to each other on your device.</p>
-      </div>
-      <div class="suite-marks" aria-hidden="true">{app_mark('semestra')}<span class="suite-plus">+</span>{app_mark('paradeiser')}</div>
+    <section class="wrap tiles" aria-label="The apps">
+      {''.join(home_tile(site, key, first=i == 0) for i, key in enumerate(APP_KEYS))}
     </section>
-    {PRINCIPLES}
 
-    <section aria-label="Latest updates">
-      <div class="section-bar"><span class="section-label">Latest Updates</span></div>
-      <div class="update-list">
+    <section class="section wrap together" aria-labelledby="together-title" data-reveal>
+      <div class="together-marks" aria-hidden="true">{app_icon('semestra', sem, 72)}<span class="together-plus">+</span>{app_icon('paradeiser', par, 72)}</div>
+      <p class="eyebrow">Better Together</p>
+      <h2 class="headline" id="together-title"><span class="phrase">Semestra plans the block.</span> <span class="phrase">Paradeiser times it.</span></h2>
+      <p class="lead">When a study block is coming up in Semestra, Paradeiser suggests focus and break times that fit it. What you study there counts as studied in your plan. The two apps only talk to each other on your device.</p>
+    </section>
+
+    <section class="section wrap" aria-labelledby="principles-title">
+      <h2 class="sr-only" id="principles-title">Principles</h2>
+      <div class="feature-grid feature-grid--4">
+        <div class="feature" data-reveal><h3>No account</h3><p>Open the app and start. There is nothing to sign up for.</p></div>
+        <div class="feature" data-reveal><h3>No ads, no tracking</h3><p>No analytics tools and no advertising, in any of the apps.</p></div>
+        <div class="feature" data-reveal><h3>On your device</h3><p>Your data stays on your iPhone, or in your own iCloud if you turn sync on.</p></div>
+        <div class="feature" data-reveal><h3>German and English</h3><p>Made in Graz, for students in Austria, Germany and Switzerland.</p></div>
+      </div>
+    </section>
+
+    <section class="section wrap" aria-labelledby="updates-title">
+      <h2 class="headline headline--small" id="updates-title" data-reveal>Latest Updates</h2>
+      <ul class="updates" data-reveal>
         {update_rows}
+      </ul>
+    </section>
+    """
+
+
+# ---------------------------------------------------------------- App pages
+
+def feature_sections(app: dict) -> str:
+    """The app's features from site.json, in order. A feature with "shots" becomes a wide row with
+    its screenshots; the features without are set next to each other as plain blocks. An app
+    with no screenshots at all gets its blocks in larger type, two to a line."""
+    features = app.get("features", [])
+    parts: list[str] = []
+    plain: list[str] = []
+    rows = 0
+
+    def flush() -> None:
+        if plain:
+            size = "large" if not any(f.get("shots") for f in features) else min(len(plain), 4)
+            parts.append(f'<div class="feature-grid feature-grid--{size}">{"".join(plain)}</div>')
+            plain.clear()
+
+    for feature in features:
+        text = f"<h3>{html.escape(feature['title'])}</h3><p>{html.escape(feature['text'])}</p>"
+        shots = feature.get("shots")
+        if not shots:
+            plain.append(f'<div class="feature" data-reveal>{text}</div>')
+            continue
+        flush()
+        cls = "feature-row" + (" feature-row--flip" if rows % 2 else "")
+        media_cls = "feature-media" + (" feature-media--pair" if len(shots) > 1 else "")
+        parts.append(
+            f'<div class="{cls}" data-reveal><div class="feature-text">{text}</div>'
+            f'<div class="{media_cls}">{"".join(device(s) for s in shots)}</div></div>'
+        )
+        rows += 1
+    flush()
+    return "\n".join(parts)
+
+
+def changelog_section(updates: list[dict]) -> str:
+    count = "1 Version" if len(updates) == 1 else f"{len(updates)} Versions"
+    entries = "".join(
+        f"""<article class="release" id="{u['slug']}" data-reveal>
+  <div class="release-meta">
+    <p class="release-version">Version {html.escape(u['version'])}</p>
+    {f'<p>{chip(u["status"])}</p>' if u['status'] else ''}
+    <p>{'Updated ' if u['status'] and not is_live(u['status']) else ''}{time_tag(u['date'])}</p>
+    <p>{html.escape(u['platform'])}</p>
+  </div>
+  <div class="release-body">
+    <h3 class="release-title">{html.escape(u['title'])}</h3>
+    <div class="prose">
+      {u['body_html']}
+    </div>
+  </div>
+</article>"""
+        for u in updates
+    )
+    return f"""
+    <section class="section wrap" id="changelog" aria-labelledby="changelog-title">
+      <div class="section-head">
+        <h2 class="headline" id="changelog-title">Changelog</h2>
+        <p class="section-note">{count}</p>
+      </div>
+      {entries}
+    </section>"""
+
+
+def app_page(site: dict, key: str, updates: list[dict]) -> str:
+    """One product page: the hero, what the app does, the facts, then the changelog."""
+    app = site[key]
+    name = html.escape(app["name"])
+    support = html.escape(app.get("support_email", site["email"]).strip())
+    status = chip(app.get("status", ""))
+    if app.get("app_store_url"):
+        actions = (
+            f'<a class="button" {link_attrs(app["app_store_url"])}>View on the App Store</a>'
+            f'<a class="more more--down" href="#changelog">Changelog</a>'
+        )
+        note = f'<p class="hero-status">{status}</p>'
+    else:
+        # Not on the App Store: the status takes the place of a button.
+        actions = f'{status}<a class="more more--down" href="#changelog">Changelog</a>'
+        note = ""
+    return f"""
+    <section class="hero hero--app">
+      <div class="wrap">
+        {app_icon(key, app, 112, transition=True)}
+        <h1 class="display">{name}</h1>
+        <p class="hero-line">{html.escape(app['subtitle'])}</p>
+        <p class="lead">{html.escape(app['summary'])}</p>
+        <div class="hero-actions">{actions}</div>
+        {note}
       </div>
     </section>
-    {writing_section}
 
-    {render_newsletter(site)}
+    <section class="section section--first wrap" aria-labelledby="features-title">
+      <h2 class="headline" id="features-title" data-reveal>{html.escape(app['features_title'])}</h2>
+      {feature_sections(app)}
+    </section>
+
+    <section class="section wrap" aria-labelledby="facts-title">
+      <h2 class="sr-only" id="facts-title">{name} at a Glance</h2>
+      <dl class="facts" data-reveal>
+        <div><dt>Runs on</dt><dd>{html.escape(app['platforms'])}</dd></div>
+        <div><dt>Price</dt><dd>{html.escape(app['pricing'])}</dd></div>
+        <div><dt>Privacy</dt><dd>No account, no ads, no tracking. <a href="{PRIVACY_PATHS[key]}">Privacy Policy</a></dd></div>
+        <div><dt>Support</dt><dd><a href="mailto:{support}">{support}</a></dd></div>
+      </dl>
+    </section>
+    {changelog_section(updates)}
     """
-    write_page(
-        "index.html",
-        title=f"{site['name']} — {site['kicker']}",
-        path="/",
-        active_nav="home",
-        content_html=home_content,
-        description=site["intro"],
-    )
 
-    # 2. Writing Archive (dist/writing/index.html), only while there is writing
-    if writings:
-        archive_intro = "Fiction, fragments, and occasional reflections on building software by hand."
-        writing_index_html = f"""
-        <section class="intro-band intro-band--tight">
-          <div class="kicker">Archive</div>
-          <h1 class="display-title">Stories &amp; <em>longform</em> notes.</h1>
-          <p class="intro-copy">{archive_intro}</p>
-        </section>
 
-        <div class="section-bar">
-          <span class="section-label">{len(writings)} Published Pieces</span>
-          {FILTER_TABS}
-        </div>
-        <div class="writing-list">
-          {''.join(writing_row(w, w['subtitle'] or w['excerpt']) for w in writings)}
-        </div>
-        """
-        write_page(
-            "writing/index.html",
-            title=f"Writing — {site['name']}",
-            path="/writing/",
-            active_nav="writing",
-            content_html=writing_index_html,
-            description=archive_intro,
-        )
+# ---------------------------------------------------------------- About and 404
 
-    # 3. Individual Longform Reader Pages (dist/writing/<slug>.html)
-    for idx, w in enumerate(writings):
-        body_cls = "prose-body is-story" if w["kind"] == "story" else "prose-body"
-        newer = writings[idx - 1] if idx > 0 else None
-        older = writings[idx + 1] if idx + 1 < len(writings) else None
-        subtitle_html = (
-            f'<p class="article-subtitle">{html.escape(w["subtitle"])}</p>' if w["subtitle"] else ""
-        )
-
-        article_html = f"""
-        <article class="reader-container">
-          <div class="reader-controls">
-            <a href="/writing/">&larr; All Writing</a>
-            <div class="control-pills">
-              <button class="ctrl-btn" data-set-theme="paper" type="button">Paper</button>
-              <button class="ctrl-btn" data-set-theme="sepia" type="button">Sepia</button>
-              <button class="ctrl-btn" data-set-theme="dusk" type="button">Dusk</button>
-              <button class="ctrl-btn" id="fontDec" type="button" aria-label="Decrease text size">A-</button>
-              <button class="ctrl-btn" id="fontInc" type="button" aria-label="Increase text size">A+</button>
-              <button class="ctrl-btn" id="focusToggle" type="button" aria-pressed="false">Focus</button>
-            </div>
-          </div>
-
-          <header class="article-header">
-            <div class="article-meta-line">
-              <span class="kind-tag">{w['kind_label']}</span>
-              <span>&middot;</span>
-              {time_tag(w['date'])}
-              <span>&middot;</span>
-              <span>{html.escape(w['reading_time'])} read</span>
-            </div>
-            <h1 class="article-title">{html.escape(w['title'])}</h1>
-            {subtitle_html}
-          </header>
-
-          <div class="{body_cls}" id="proseBody">
-            {w['body_html']}
-          </div>
-
-          {render_newsletter(site, compact=True)}
-
-          <nav class="article-nav" aria-label="Story navigation">
-            {article_nav_link(newer, "&larr; Newer")}
-            {article_nav_link(older, "Older &rarr;", "article-nav-next")}
-          </nav>
-        </article>
-        """
-        write_page(
-            f"writing/{w['slug']}.html",
-            title=f"{w['title']} — {site['name']}",
-            path=w["url"],
-            active_nav="writing",
-            content_html=article_html,
-            description=w["excerpt"] or w["subtitle"],
-            og_type="article",
-            show_progress=True,
-        )
-
-    # 4. Semestra Product, Changelog & Privacy Policy Pages (dist/semestra/)
+def about_page(site: dict) -> str:
+    sem = site["semestra"]
+    site_email = html.escape(site["email"])
     support_email = html.escape(sem.get("support_email", "").strip())
-    support_link = f'<a href="mailto:{support_email}">{support_email}</a>'
-    semestra_html = app_page(
-        app=sem,
-        key="semestra",
-        store_button=f'<a {link_attrs(sem["app_store_url"])} class="btn-solid">View on the App Store &#8599;</a>',
-        privacy_url="/semestra/privacy-policy/",
-        email=support_email,
-        features_label="What Semestra Does",
-        features=[
-            ("Timetable in, plan out", "Subscribe to the calendar link from your university portal or import an .ics file. Semestra finds the free time in your week and plans your study blocks into it."),
-            ("Exams, detected", "Exams in your timetable are recognised and added with one tap, each with its study hours, preparation time and priority."),
-            ("A plan that keeps up", "When a lecture or an exam moves, the plan adjusts by itself. Finish, move or skip a block and it recalculates."),
-            ("Always in view", "A reminder before each block, and the running block on the Lock Screen and in the Dynamic Island."),
-            ("Works with your calendar", "Your appointments stay free, and study blocks can go into a calendar of their own."),
-            ("Coming with 2.0", "A guided setup, a week view, registration deadlines, widgets, Semestra Plus and the link with Paradeiser. See the changelog below."),
-        ],
-        updates=updates,
+    github = next(
+        (link["url"] for link in site.get("links", []) if link.get("label", "").lower() == "github" and link.get("url")),
+        "",
     )
-    write_page(
-        "semestra/index.html",
-        title=f"Semestra — {site['name']}",
-        path="/semestra/",
-        active_nav="semestra",
-        content_html=semestra_html,
-        description=sem["summary"],
+    support_item = (
+        f'<div><dt>Semestra support</dt><dd><a href="mailto:{support_email}">{support_email}</a></dd></div>'
+        if support_email
+        else ""
     )
+    github_item = f'<li><a class="more more--out" {link_attrs(github)}>GitHub</a></li>' if github else ""
+    return f"""
+    <section class="hero hero--page">
+      <div class="wrap">
+        <p class="eyebrow">About</p>
+        <h1 class="display">Hello, I'm Lukas.</h1>
+      </div>
+    </section>
 
-    semestra_privacy_html = f"""
-    <div class="reader-container">
-      <div class="reader-controls">
+    <div class="wrap page-column">
+      <div class="prose prose--large">
+        <p>
+          I study in Graz and build the apps I wanted for my own semesters:
+          <a href="/semestra/"><strong>Semestra</strong></a>, a study planner,
+          <a href="/paradeiser/"><strong>Paradeiser</strong></a>, an interval timer, and
+          <a href="/muninn/"><strong>Muninn</strong></a>, a flashcard app that is still in its early days.
+        </p>
+        <p>
+          They share a few rules. They need no account, show no ads and contain no tracking.
+          Your data stays on your device. And they should feel calm: an app for studying
+          shouldn't be one more thing that asks for your attention.
+        </p>
+        <p>
+          This website is built the same way: plain pages, no cookies, no analytics.
+          If you have feedback on one of the apps, I'd love to hear from you.
+        </p>
+      </div>
+
+      <section class="about-contact" aria-labelledby="contact-title">
+        <h2 class="headline headline--small" id="contact-title">Contact &amp; Links</h2>
+        <dl class="facts facts--two">
+          <div><dt>General &amp; Paradeiser</dt><dd><a href="mailto:{site_email}">{site_email}</a></dd></div>
+          {support_item}
+        </dl>
+        <ul class="link-list">
+          <li><a class="more more--out" {link_attrs(sem['app_store_url'])}>Semestra on the App Store</a></li>
+          {github_item}
+          <li><a class="more" href="/rss.xml">RSS Feed</a></li>
+          <li><a class="more" href="/imprint/">Imprint</a></li>
+        </ul>
+      </section>
+    </div>
+    """
+
+
+NOT_FOUND_PAGE = """
+    <section class="hero hero--page">
+      <div class="wrap">
+        <p class="eyebrow">Error 404</p>
+        <h1 class="display">This page has gone missing.</h1>
+        <p class="lead">The link may be old or mistyped. Try the <a href="/">home page</a>, <a href="/semestra/">Semestra</a> or <a href="/paradeiser/">Paradeiser</a>.</p>
+      </div>
+    </section>
+    """
+
+
+# ---------------------------------------------------------------- Legal pages
+#
+# The privacy policies and the imprint are legal texts: change their wording only on purpose, in
+# German and English together, and move the "Stand / Last updated" date when you do. Each page has
+# one h1, the German title. The English title is therefore an h2 and the English sections are h3;
+# the stylesheet sets both languages the same.
+
+def semestra_privacy(support_email: str) -> str:
+    return f"""
+    <div class="legal">
+      <div class="legal-bar">
         <a href="/semestra/">&larr; Back to Semestra</a>
-        <div class="legal-lang-links" aria-label="Language">
-          <a href="#de">Deutsch</a>
-          <a href="#en">English</a>
-        </div>
+        <nav class="lang-switch" aria-label="Language">
+          <a href="#de" lang="de" hreflang="de">Deutsch</a>
+          <a href="#en" hreflang="en">English</a>
+        </nav>
       </div>
 
       <article id="de" lang="de">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Datenschutzerklärung</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Datenschutzerklärung</span>
             <span>&middot;</span>
             <span>Semestra</span>
             <span>&middot;</span>
             <span>Stand: 24. November 2026</span>
-          </div>
-          <h1 class="article-title">Datenschutzerklärung für Semestra</h1>
+          </p>
+          <h1 class="legal-title">Datenschutzerklärung für Semestra</h1>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>Kurz gesagt:</strong> Semestra braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt keine eigenen Server. Deine Prüfungen, dein Lernplan und dein Fortschritt bleiben auf deinem Gerät – oder, wenn du die iCloud-Synchronisierung einschaltest, in deinem eigenen iCloud-Account. Ich als Entwickler habe keinen Zugriff darauf.</p>
           </div>
@@ -889,22 +720,22 @@ def build() -> None:
       <hr class="legal-divider" />
 
       <article id="en" lang="en">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Privacy Policy</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Privacy Policy</span>
             <span>&middot;</span>
             <span>Semestra</span>
             <span>&middot;</span>
             <span>Last updated: 24 November 2026</span>
-          </div>
-          <h1 class="article-title">Semestra Privacy Policy</h1>
+          </p>
+          <h2 class="legal-title">Semestra Privacy Policy</h2>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>In short:</strong> Semestra needs no account, shows no ads, contains no analytics or tracking tools and runs no servers of its own. Your exams, study plan and progress stay on your device – or, if you turn on iCloud sync, in your own iCloud account. I, the developer, have no access to them.</p>
           </div>
 
-          <h2>1. Controller</h2>
+          <h3>1. Controller</h3>
           <address class="legal-address">
             Lukas Geyer<br />
             Ghegagasse 13/32<br />
@@ -912,106 +743,71 @@ def build() -> None:
             Email: <a href="mailto:{support_email}">{support_email}</a>
           </address>
 
-          <h2>2. Data on your device</h2>
+          <h3>2. Data on your device</h3>
           <p>Everything you enter in Semestra – exams, topics, study sessions, grades, ECTS credits, imported calendars and your settings – is stored and processed locally on your device. When you add exams from text or a photo, the text is also read on your device. It is not sent to me or to any third party. Deleting the app deletes this data.</p>
 
-          <h2>3. Access to your calendars</h2>
+          <h3>3. Access to your calendars</h3>
           <p>If you allow it, Semestra reads your calendars to find free time for studying and to detect exam dates, and adds your study blocks to a separate calendar. This happens only on your device. You can revoke access at any time in iOS Settings under <em>Privacy &amp; Security &rsaquo; Calendars</em>.</p>
 
-          <h2>4. Calendar subscriptions and imported files</h2>
+          <h3>4. Calendar subscriptions and imported files</h3>
           <p>You can import calendar files (.ics) or subscribe to a calendar address, for example from your university. For a subscription, Semestra downloads the calendar directly from the address you entered. Like any request on the internet, this gives that server technical data such as your IP address. The operator of that server is responsible for this processing, and its privacy policy applies. I receive no data from this.</p>
 
-          <h2>5. iCloud sync (optional)</h2>
+          <h3>5. iCloud sync (optional)</h3>
           <p>With Semestra Plus you can sync your data across your devices via iCloud. The data is then stored in the private database of your iCloud account at Apple. Only you can access it, not me. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a> applies. You can turn sync off in Semestra's settings and delete the stored data in iOS Settings under <em>[Your Name] &rsaquo; iCloud &rsaquo; Manage Storage</em>.</p>
 
-          <h2>6. Purchases and subscriptions</h2>
+          <h3>6. Purchases and subscriptions</h3>
           <p>Purchases of Semestra Plus (a monthly or yearly subscription, or a one-time purchase) are handled entirely by Apple through the App Store. I receive no payment details and no data that identifies you personally. The app only checks on your device whether a subscription or the one-time purchase is active.</p>
 
-          <h2>7. Notifications, widgets and Siri</h2>
+          <h3>7. Notifications, widgets and Siri</h3>
           <p>Study reminders are scheduled as local notifications on your device. Widgets and Live Activities show data that stays on your device. If you use Siri or Shortcuts with Semestra, Apple processes your requests under Apple's Privacy Policy.</p>
 
-          <h2>8. Export and sharing</h2>
+          <h3>8. Export and sharing</h3>
           <p>When you export your study plan as a PDF or calendar file, you decide where the file goes. Semestra doesn't send anything on its own.</p>
 
-          <h2>9. Link with Paradeiser (optional)</h2>
+          <h3>9. Link with Paradeiser (optional)</h3>
           <p>If <a href="/paradeiser/">Paradeiser</a>, my interval timer, is installed on the same device, the two apps exchange data: Semestra makes your upcoming study blocks available to Paradeiser (the exam's name, the topic, start and end), and Paradeiser reports back when and for how long you focused on them. This exchange happens only on your device, through a protected storage area the two apps share (an App Group). Nothing is sent to me or to any third party. You can turn the link off in Semestra's settings under <em>Paradeiser</em>. Without Paradeiser on the device, nobody reads this data.</p>
 
-          <h2>10. Crash reports and statistics from Apple</h2>
+          <h3>10. Crash reports and statistics from Apple</h3>
           <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>.</p>
 
-          <h2>11. This website</h2>
+          <h3>11. This website</h3>
           <p>When you visit lukasgeyer.com (as well as semestra.at), the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
 
-          <h2>12. Your rights</h2>
+          <h3>12. Your rights</h3>
           <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. Since I store no personal data about you, I can usually only confirm that there is none. Just write to the email address above.</p>
           <p>You also have the right to lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a> (Datenschutzbehörde), Barichgasse 40–42, 1030 Vienna.</p>
 
-          <h2>13. Changes</h2>
+          <h3>13. Changes</h3>
           <p>If Semestra changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
         </div>
       </article>
     </div>
     """
-    write_page(
-        "semestra/privacy-policy/index.html",
-        title=f"Semestra Privacy Policy — {site['name']}",
-        path="/semestra/privacy-policy/",
-        active_nav="semestra",
-        content_html=semestra_privacy_html,
-        description="Datenschutzerklärung der App Semestra / Privacy policy of the Semestra app.",
-    )
 
-    # 4b. Paradeiser Product & Privacy Pages (dist/paradeiser/index.html & privacy)
-    paradeiser = site["paradeiser"]
-    paradeiser_email = html.escape(paradeiser.get("support_email", site["email"]).strip())
-    paradeiser_html = app_page(
-        app=paradeiser,
-        key="paradeiser",
-        store_button='<span class="btn-solid btn-disabled" aria-disabled="true">Coming to the App Store</span>',
-        privacy_url="/paradeiser/privacy-policy/",
-        email=paradeiser_email,
-        features_label="What Paradeiser Does",
-        features=[
-            ("Your own intervals", "Any combination of focus blocks and breaks, such as three 45-minute blocks with 15-minute breaks, saved as presets you switch with one tap."),
-            ("Keeps running", "The timer follows the clock, so it stays right when the app is closed or the iPhone is locked."),
-            ("Lock Screen and Dynamic Island", "The running interval as a Live Activity, with buttons to pause, resume and skip."),
-            ("Tomatoes and streaks", "With Paradeiser Plus, every focus round earns tomatoes, days in a row build a streak, and Rest Days protect it."),
-            ("Statistics", "With Plus: focus time per day and week, focus tags, a daily goal, and logging to Apple Calendar and Apple Health."),
-            ("Works with Semestra", "Paradeiser suggests focus and break times for your next study block, and the time counts as studied in your plan."),
-        ],
-        updates=paradeiser_updates,
-    )
-    write_page(
-        "paradeiser/index.html",
-        title=f"Paradeiser — {site['name']}",
-        path="/paradeiser/",
-        active_nav="paradeiser",
-        content_html=paradeiser_html,
-        description=paradeiser["summary"],
-    )
 
-    paradeiser_privacy_html = f"""
-    <div class="reader-container">
-      <div class="reader-controls">
+def paradeiser_privacy(paradeiser_email: str) -> str:
+    return f"""
+    <div class="legal">
+      <div class="legal-bar">
         <a href="/paradeiser/">&larr; Back to Paradeiser</a>
-        <div class="legal-lang-links" aria-label="Language">
-          <a href="#de">Deutsch</a>
-          <a href="#en">English</a>
-        </div>
+        <nav class="lang-switch" aria-label="Language">
+          <a href="#de" lang="de" hreflang="de">Deutsch</a>
+          <a href="#en" hreflang="en">English</a>
+        </nav>
       </div>
 
       <article id="de" lang="de">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Datenschutzerklärung</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Datenschutzerklärung</span>
             <span>&middot;</span>
             <span>Paradeiser</span>
             <span>&middot;</span>
             <span>Stand: 24. November 2026</span>
-          </div>
-          <h1 class="article-title">Datenschutzerklärung für Paradeiser</h1>
+          </p>
+          <h1 class="legal-title">Datenschutzerklärung für Paradeiser</h1>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>Kurz gesagt:</strong> Paradeiser braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt keine eigenen Server. Deine Fokus-Sitzungen, Presets, Tags, Meilensteine und Einstellungen bleiben auf deinem Gerät. Ich als Entwickler habe keinen Zugriff darauf.</p>
           </div>
@@ -1063,22 +859,22 @@ def build() -> None:
       <hr class="legal-divider" />
 
       <article id="en" lang="en">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Privacy Policy</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Privacy Policy</span>
             <span>&middot;</span>
             <span>Paradeiser</span>
             <span>&middot;</span>
             <span>Last updated: 24 November 2026</span>
-          </div>
-          <h1 class="article-title">Paradeiser Privacy Policy</h1>
+          </p>
+          <h2 class="legal-title">Paradeiser Privacy Policy</h2>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>In short:</strong> Paradeiser needs no account, shows no ads, contains no analytics or tracking tools and runs no servers of its own. Your focus sessions, presets, tags, milestones and settings stay on your device. I, the developer, have no access to them.</p>
           </div>
 
-          <h2>1. Controller</h2>
+          <h3>1. Controller</h3>
           <address class="legal-address">
             Lukas Geyer<br />
             Ghegagasse 13/32<br />
@@ -1086,120 +882,68 @@ def build() -> None:
             Email: <a href="mailto:{paradeiser_email}">{paradeiser_email}</a>
           </address>
 
-          <h2>2. Data on your device</h2>
+          <h3>2. Data on your device</h3>
           <p>Everything you create and record in Paradeiser – custom schedules and presets, focus tags, completed focus sessions, daily goals, streaks, milestones, unlocked tomato varieties and your settings – is stored and processed locally on your device using Apple's SwiftData and UserDefaults frameworks. It is not sent to me or to any third party. Deleting the app deletes this data.</p>
 
-          <h2>3. Apple Calendar (optional)</h2>
+          <h3>3. Apple Calendar (optional)</h3>
           <p>If you turn on Calendar sync with Paradeiser Plus and grant permission, Paradeiser saves your completed focus sessions as events in the calendar you select. This happens strictly on your device. You can revoke access at any time in iOS Settings under <em>Privacy &amp; Security &rsaquo; Calendars</em>.</p>
 
-          <h2>4. Apple Health (optional)</h2>
+          <h3>4. Apple Health (optional)</h3>
           <p>If you turn on Apple Health sync and grant write permission, Paradeiser records completed focus sessions locally on your device as Mindful Minutes in Apple Health. Paradeiser never reads Health data and never shares Health data with me or any third party. You can revoke permission at any time in the Health app or iOS Settings.</p>
 
-          <h2>5. Link with Semestra (optional)</h2>
+          <h3>5. Link with Semestra (optional)</h3>
           <p>If <a href="/semestra/">Semestra</a>, my study planner, is installed on the same device, the two apps exchange data: Semestra makes your upcoming study blocks available to Paradeiser (the exam's name, the topic, start and end) so that Paradeiser can suggest focus and break times that fit them, and Paradeiser reports back when and for how long you focused on them. This exchange happens only on your device, through a protected storage area the two apps share (an App Group). Nothing is sent to me or to any third party. You can turn the link off in Paradeiser's settings under <em>Integrations</em>.</p>
 
-          <h2>6. Photos and sticker sharing (optional)</h2>
+          <h3>6. Photos and sticker sharing (optional)</h3>
           <p>When you save a Paradeiser sticker to your Photo Library, Paradeiser requests add-only permission solely to write the PNG image and cannot read your existing photos. When you copy or share a sticker or weekly recap, you decide where it goes. Paradeiser never sends anything on its own.</p>
 
-          <h2>7. Purchases and subscriptions</h2>
+          <h3>7. Purchases and subscriptions</h3>
           <p>Purchases of Paradeiser Plus (monthly, yearly or lifetime) are handled entirely by Apple through the App Store (StoreKit). I receive no payment details and no data that identifies you personally. The app only checks on your device whether an entitlement is active.</p>
 
-          <h2>8. Notifications and Live Activities</h2>
+          <h3>8. Notifications and Live Activities</h3>
           <p>Phase completion alerts are scheduled as local notifications on your device. Lock Screen and Dynamic Island Live Activities display timer state that stays entirely on your device.</p>
 
-          <h2>9. Crash reports and statistics from Apple</h2>
+          <h3>9. Crash reports and statistics from Apple</h3>
           <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>.</p>
 
-          <h2>10. This website</h2>
+          <h3>10. This website</h3>
           <p>When you visit lukasgeyer.com, the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
 
-          <h2>11. Your rights</h2>
+          <h3>11. Your rights</h3>
           <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. Since I store no personal data about you, I can usually only confirm that there is none. Just write to the email address above.</p>
           <p>You also have the right to lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a> (Datenschutzbehörde), Barichgasse 40–42, 1030 Vienna.</p>
 
-          <h2>12. Changes</h2>
+          <h3>12. Changes</h3>
           <p>If Paradeiser changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
         </div>
       </article>
     </div>
     """
-    write_page(
-        "paradeiser/privacy-policy/index.html",
-        title=f"Paradeiser Privacy Policy — {site['name']}",
-        path="/paradeiser/privacy-policy/",
-        active_nav="paradeiser",
-        content_html=paradeiser_privacy_html,
-        description="Datenschutzerklärung der App Paradeiser / Privacy policy of the Paradeiser app.",
-    )
 
-    # Keep /paradeiser/privacy/ redirecting cleanly to /paradeiser/privacy-policy/ for backwards compatibility.
-    (DIST / "paradeiser" / "privacy" / "index.html").write_text(
-        """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="robots" content="noindex" />
-  <meta http-equiv="refresh" content="0; url=/paradeiser/privacy-policy/" />
-  <link rel="canonical" href="https://lukasgeyer.com/paradeiser/privacy-policy/" />
-  <title>Redirecting to Paradeiser Privacy Policy…</title>
-</head>
-<body>
-  <p>Redirecting to <a href="/paradeiser/privacy-policy/">Paradeiser Privacy Policy</a>…</p>
-</body>
-</html>
-""",
-        encoding="utf-8",
-    )
 
-    # 4c. Muninn Product & Privacy Pages (dist/muninn/index.html & privacy)
-    muninn = site["muninn"]
-    muninn_email = html.escape(muninn.get("support_email", site["email"]).strip())
-    muninn_html = app_page(
-        app=muninn,
-        key="muninn",
-        store_button='<span class="btn-solid btn-disabled" aria-disabled="true">Not available yet</span>',
-        privacy_url="/muninn/privacy/",
-        email=muninn_email,
-        features_label="The Plan for Muninn",
-        features=[
-            ("One shared core", "A single Rust core holds the collection model, the scheduling and the file format, so every platform behaves the same."),
-            ("FSRS-7 scheduling", "A modern spaced-repetition scheduler tuned for long-term retention, without settings to babysit."),
-            ("Anki decks welcome", "Existing Anki decks are to be imported into clean native card types, keeping their templates so they can go back to Anki unchanged."),
-            ("Native apps", "No web wrappers: iOS and macOS first from one SwiftUI codebase, then Android, Windows and Linux."),
-        ],
-        updates=muninn_updates,
-    )
-    write_page(
-        "muninn/index.html",
-        title=f"Muninn — {site['name']}",
-        path="/muninn/",
-        active_nav="muninn",
-        content_html=muninn_html,
-        description=muninn["summary"],
-    )
-
-    muninn_privacy_html = f"""
-    <div class="reader-container">
-      <div class="reader-controls">
+def muninn_privacy(muninn_email: str) -> str:
+    return f"""
+    <div class="legal">
+      <div class="legal-bar">
         <a href="/muninn/">&larr; Back to Muninn</a>
-        <div class="legal-lang-links" aria-label="Language">
-          <a href="#de">Deutsch</a>
-          <a href="#en">English</a>
-        </div>
+        <nav class="lang-switch" aria-label="Language">
+          <a href="#de" lang="de" hreflang="de">Deutsch</a>
+          <a href="#en" hreflang="en">English</a>
+        </nav>
       </div>
 
       <article id="de" lang="de">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Datenschutzerklärung</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Datenschutzerklärung</span>
             <span>&middot;</span>
             <span>Muninn</span>
             <span>&middot;</span>
             <span>Stand: 25. November 2026</span>
-          </div>
-          <h1 class="article-title">Datenschutzerklärung für Muninn</h1>
+          </p>
+          <h1 class="legal-title">Datenschutzerklärung für Muninn</h1>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>Kurz gesagt:</strong> Muninn braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt derzeit keine eigenen Server. Deine Stapel, Karten, Bilder und dein Lernverlauf bleiben auf deinem Gerät. Ich als Entwickler habe keinen Zugriff darauf.</p>
           </div>
@@ -1243,22 +987,22 @@ def build() -> None:
       <hr class="legal-divider" />
 
       <article id="en" lang="en">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Privacy Policy</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Privacy Policy</span>
             <span>&middot;</span>
             <span>Muninn</span>
             <span>&middot;</span>
             <span>Last updated: 25 November 2026</span>
-          </div>
-          <h1 class="article-title">Muninn Privacy Policy</h1>
+          </p>
+          <h2 class="legal-title">Muninn Privacy Policy</h2>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <div class="legal-summary">
             <p><strong>In short:</strong> Muninn needs no account, shows no ads, contains no analytics or tracking tools and currently runs no servers of its own. Your decks, cards, images and review history stay on your device. I, the developer, have no access to them.</p>
           </div>
 
-          <h2>1. Controller</h2>
+          <h3>1. Controller</h3>
           <address class="legal-address">
             Lukas Geyer<br />
             Ghegagasse 13/32<br />
@@ -1266,132 +1010,59 @@ def build() -> None:
             Email: <a href="mailto:{muninn_email}">{muninn_email}</a>
           </address>
 
-          <h2>2. Data on your device</h2>
+          <h3>2. Data on your device</h3>
           <p>Everything you create, import and record while studying in Muninn – decks, cards with their text, images and sounds, tags, your review history with ratings and times, and your settings – is stored and processed locally on your device. This data is not sent to me or to third parties. If you delete the app, this data is deleted too.</p>
           <p>If you have turned on iCloud Backup or a backup to a computer for your device, Apple backs up the app's data along with that of your other apps. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a> applies to that.</p>
 
-          <h2>3. Importing and exporting decks</h2>
+          <h3>3. Importing and exporting decks</h3>
           <p>When you import a deck (for example an Anki file), Muninn reads the file you chose on your device. When you export a deck, Muninn creates a file and hands it to your device's share sheet; where it goes is your decision. Muninn sends nothing by itself.</p>
 
-          <h2>4. Photos and files (optional)</h2>
+          <h3>4. Photos and files (optional)</h3>
           <p>When you add an image to a card, you choose it from your photos or files through Apple's picker. Muninn receives only the images you choose and has no access to the rest of your library. The chosen image is stored in Muninn on your device.</p>
 
-          <h2>5. Sync (planned)</h2>
+          <h3>5. Sync (planned)</h3>
           <p>Syncing between your own devices is planned as an option you turn on yourself. Before it becomes available, this page will say how it works and where data is stored. Until then nothing leaves your device.</p>
 
-          <h2>6. Crash reports and statistics from Apple</h2>
+          <h3>6. Crash reports and statistics from Apple</h3>
           <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>. If you use a test version through TestFlight, Apple's terms for TestFlight apply to it as well.</p>
 
-          <h2>7. This website</h2>
+          <h3>7. This website</h3>
           <p>When you visit lukasgeyer.com, the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
 
-          <h2>8. Your rights</h2>
+          <h3>8. Your rights</h3>
           <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. As I store no personal data about you, I can usually only confirm that there is none. Feel free to write to the email address above.</p>
           <p>You can also lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a>, Barichgasse 40–42, 1030 Vienna.</p>
 
-          <h2>9. Changes</h2>
+          <h3>9. Changes</h3>
           <p>If Muninn changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
         </div>
       </article>
     </div>
     """
-    write_page(
-        "muninn/privacy/index.html",
-        title=f"Muninn Privacy Policy — {site['name']}",
-        path="/muninn/privacy/",
-        active_nav="muninn",
-        content_html=muninn_privacy_html,
-        description="Datenschutzerklärung der App Muninn / Privacy policy of the Muninn app.",
-    )
 
-    # 5. About Page (dist/about/index.html)
-    github_link = next(
-        (
-            link["url"]
-            for link in site.get("links", [])
-            if link.get("label", "").lower() == "github" and link.get("url")
-        ),
-        "",
-    )
-    support_aside_html = (
-        f'<li><span class="aside-note">Semestra support</span>{support_link}</li>'
-        if support_email
-        else ""
-    )
-    github_aside_html = (
-        f"<li><a {link_attrs(github_link)}>GitHub &#8599;</a></li>" if github_link else ""
-    )
-    site_email = html.escape(site["email"])
 
-    about_html = f"""
-    <section class="intro-band intro-band--tight">
-      <div class="kicker">About</div>
-      <h1 class="display-title">Hello, I'm <em>Lukas</em>.</h1>
-    </section>
-
-    <div class="about-grid">
-      <div class="prose-body">
-        <p>
-          I study in Graz and build the apps I wanted for my own semesters:
-          <a href="/semestra/"><strong>Semestra</strong></a>, a study planner,
-          <a href="/paradeiser/"><strong>Paradeiser</strong></a>, an interval timer, and
-          <a href="/muninn/"><strong>Muninn</strong></a>, a flashcard app that is still in its early days.
-        </p>
-        <p>
-          They share a few rules. They need no account, show no ads and contain no tracking.
-          Your data stays on your device. And they should feel calm: an app for studying
-          shouldn't be one more thing that asks for your attention.
-        </p>
-        <p>
-          This website is built the same way: plain pages, no cookies, no analytics.
-          If you have feedback on one of the apps, I'd love to hear from you.
-        </p>
-      </div>
-
-      <aside class="about-aside">
-        <h2>Contact &amp; Links</h2>
-        <ul>
-          <li><span class="aside-note">General &amp; Paradeiser</span><a href="mailto:{site_email}">{site_email}</a></li>
-          {support_aside_html}
-          <li><a {link_attrs(sem['app_store_url'])}>Semestra on the App Store &#8599;</a></li>
-          {github_aside_html}
-          <li><a href="/rss.xml">RSS Feed</a></li>
-          <li><a href="/imprint/">Imprint</a></li>
-        </ul>
-      </aside>
-    </div>
-    """
-    write_page(
-        "about/index.html",
-        title=f"About — {site['name']}",
-        path="/about/",
-        active_nav="about",
-        content_html=about_html,
-        description="About Lukas Geyer and the apps Semestra, Paradeiser and Muninn.",
-    )
-
-    # 5b. Shared Imprint / Legal Notice Page (dist/imprint/index.html) for Semestra & Paradeiser
-    imprint_html = f"""
-    <div class="reader-container">
-      <div class="reader-controls">
+def imprint(support_email: str, site_email: str) -> str:
+    return f"""
+    <div class="legal">
+      <div class="legal-bar">
         <a href="/">&larr; Home</a>
-        <div class="legal-lang-links" aria-label="Language">
-          <a href="#de">Deutsch</a>
-          <a href="#en">English</a>
-        </div>
+        <nav class="lang-switch" aria-label="Language">
+          <a href="#de" lang="de" hreflang="de">Deutsch</a>
+          <a href="#en" hreflang="en">English</a>
+        </nav>
       </div>
 
       <article id="de" lang="de">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Impressum</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Impressum</span>
             <span>&middot;</span>
             <span>lukasgeyer.com &middot; Semestra &middot; Paradeiser &middot; Muninn</span>
-          </div>
-          <h1 class="article-title">Impressum</h1>
-          <p class="article-subtitle">Informationen gemäß &sect;&nbsp;5 ECG und Offenlegung gemäß &sect;&nbsp;25 MedienG</p>
+          </p>
+          <h1 class="legal-title">Impressum</h1>
+          <p class="legal-subtitle">Informationen gemäß &sect;&nbsp;5 ECG und Offenlegung gemäß &sect;&nbsp;25 MedienG</p>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <dl class="legal-dl">
             <dt>Medieninhaber und Diensteanbieter</dt>
             <dd>
@@ -1430,16 +1101,16 @@ def build() -> None:
       <hr class="legal-divider" />
 
       <article id="en" lang="en">
-        <header class="article-header">
-          <div class="article-meta-line">
-            <span class="kind-tag">Legal Notice</span>
+        <header class="legal-header">
+          <p class="eyebrow">
+            <span>Legal Notice</span>
             <span>&middot;</span>
             <span>lukasgeyer.com &middot; Semestra &middot; Paradeiser &middot; Muninn</span>
-          </div>
-          <h1 class="article-title">Legal Notice</h1>
-          <p class="article-subtitle">Information under &sect;&nbsp;5 ECG and disclosure under &sect;&nbsp;25 MedienG (Austrian law)</p>
+          </p>
+          <h2 class="legal-title">Legal Notice</h2>
+          <p class="legal-subtitle">Information under &sect;&nbsp;5 ECG and disclosure under &sect;&nbsp;25 MedienG (Austrian law)</p>
         </header>
-        <div class="prose-body">
+        <div class="prose">
           <dl class="legal-dl">
             <dt>Owner and service provider</dt>
             <dd>
@@ -1463,81 +1134,42 @@ def build() -> None:
             <dd>Information about the apps Semestra, Paradeiser and Muninn, their changelogs, support and legal notices</dd>
           </dl>
 
-          <h2>Copyright</h2>
+          <h3>Copyright</h3>
           <p>The content of this website – text, images and the apps shown – is protected by copyright. Any use beyond private reading needs my permission.</p>
 
-          <h2>Liability for links</h2>
+          <h3>Liability for links</h3>
           <p>This website contains links to third-party websites. Their operators alone are responsible for their content. If I become aware of any legal violations on linked pages, I will remove the link immediately.</p>
 
-          <h2>Privacy</h2>
+          <h3>Privacy</h3>
           <p>How the apps and this website handle data is described in the privacy policies for <a href="/semestra/privacy-policy/#en">Semestra</a>, <a href="/paradeiser/privacy-policy/#en">Paradeiser</a> and <a href="/muninn/privacy/">Muninn</a>.</p>
           <p class="legal-updated">Last updated: 24 November 2026</p>
         </div>
       </article>
     </div>
     """
-    write_page(
-        "imprint/index.html",
-        title=f"Imprint — {site['name']}",
-        path="/imprint/",
-        active_nav="",
-        content_html=imprint_html,
-        description="Impressum / Legal Notice for lukasgeyer.com and the apps Semestra, Paradeiser and Muninn.",
-    )
 
-    # 6. Not-found page (dist/404.html — GitHub Pages serves it for unknown URLs)
-    write_page(
-        "404.html",
-        title=f"Page not found — {site['name']}",
-        path=None,
-        active_nav="",
-        content_html="""
-    <section class="intro-band">
-      <div class="kicker">Error 404</div>
-      <h1 class="display-title">This page has gone <em>missing</em>.</h1>
-      <p class="intro-copy">The link may be old or mistyped. Try the <a href="/">home page</a>, <a href="/semestra/">Semestra</a> or <a href="/paradeiser/">Paradeiser</a>.</p>
-    </section>
-    """,
-    )
 
-    # 7. RSS Feed (dist/rss.xml)
-    feed_entries = (
-        [
-            {"date": w["date"], "title": w["title"], "link": site_url + w["url"], "description": w["excerpt"]}
-            for w in writings
-        ]
-        + [
+# ---------------------------------------------------------------- Feeds
+
+def rss_feed(site: dict, updates: dict[str, list[dict]]) -> str:
+    """The feed of app updates: one item per changelog entry, newest first."""
+    site_url = site.get("url", "").rstrip("/")
+    entries = sorted(
+        (
             {
                 "date": u["date"],
-                "title": f"Semestra {u['version']}: {u['title']}",
+                "title": f"{site[key]['name']} {u['version']}: {u['title']}",
                 "link": site_url + u["url"],
                 "description": u["highlights"],
             }
-            for u in updates
-        ]
-        + [
-            {
-                "date": u["date"],
-                "title": f"Paradeiser {u['version']}: {u['title']}",
-                "link": site_url + u["url"],
-                "description": u["highlights"],
-            }
-            for u in paradeiser_updates
-        ]
-        + [
-            {
-                "date": u["date"],
-                "title": f"Muninn {u['version']}: {u['title']}",
-                "link": site_url + u["url"],
-                "description": u["highlights"],
-            }
-            for u in muninn_updates
-        ]
+            for key in APP_KEYS
+            for u in updates[key]
+        ),
+        key=lambda item: item["date"],
+        reverse=True,
     )
-    feed_entries.sort(key=lambda item: item["date"], reverse=True)
-
     permalink_attr = "true" if site_url else "false"
-    rss_items = "\n".join(
+    items = "\n".join(
         f"""  <item>
     <title>{html.escape(item['title'])}</title>
     <link>{html.escape(item['link'])}</link>
@@ -1545,7 +1177,7 @@ def build() -> None:
     <pubDate>{rfc822(item['date'])}</pubDate>
     <description>{html.escape(item['description'])}</description>
   </item>"""
-        for item in feed_entries
+        for item in entries
     )
     channel_links = (
         f"  <link>{html.escape(site_url)}/</link>\n"
@@ -1553,65 +1185,163 @@ def build() -> None:
         if site_url
         else ""
     )
-    last_build = (
-        f"  <lastBuildDate>{rfc822(feed_entries[0]['date'])}</lastBuildDate>\n" if feed_entries else ""
-    )
-
-    (DIST / "rss.xml").write_text(
-        f"""<?xml version="1.0" encoding="UTF-8" ?>
+    last_build = f"  <lastBuildDate>{rfc822(entries[0]['date'])}</lastBuildDate>\n" if entries else ""
+    return f"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
   <title>{html.escape(site['name'])}</title>
 {channel_links}  <description>{html.escape(site['tagline'])}</description>
   <language>en</language>
-{last_build}{rss_items}
+{last_build}{items}
 </channel>
 </rss>
+"""
+
+
+def sitemap(site_url: str, updates: dict[str, list[dict]]) -> str:
+    pages: list[tuple[str, datetime.date | None]] = [("/", None)]
+    for key in APP_KEYS:
+        pages.append((f"/{key}/", updates[key][0]["date"] if updates[key] else None))
+        pages.append((PRIVACY_PATHS[key], None))
+    pages += [("/imprint/", None), ("/about/", None)]
+    urls = "\n".join(
+        f"  <url><loc>{html.escape(site_url + path)}</loc>"
+        + (f"<lastmod>{date.isoformat()}</lastmod>" if date else "")
+        + "</url>"
+        for path, date in pages
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{urls}\n</urlset>\n"
+    )
+
+
+# ---------------------------------------------------------------- Build
+
+def build() -> None:
+    site = json.loads((ROOT / "site.json").read_text(encoding="utf-8"))
+    site_url = site.get("url", "").rstrip("/")
+    updates = {key: load_updates(key) for key in APP_KEYS}
+    site_email = html.escape(site["email"])
+    emails = {key: html.escape(site[key].get("support_email", site["email"]).strip()) for key in APP_KEYS}
+
+    shutil.rmtree(DIST, ignore_errors=True)
+    shutil.copytree(ASSETS, DIST)  # everything in assets/ is published as-is
+    with (DIST / "styles.css").open("a", encoding="utf-8") as stylesheet:
+        stylesheet.write(accent_css(site))
+    (DIST / "favicon.svg").write_text(favicon_svg(site), encoding="utf-8")
+
+    # Browsers keep stylesheets and scripts for a while. The address changes with the content, so
+    # a new design never meets an old stylesheet.
+    digest = hashlib.sha256((DIST / "styles.css").read_bytes() + (DIST / "site.js").read_bytes())
+    asset_version = f"?v={digest.hexdigest()[:10]}"
+
+    def write_page(file: str, **kwargs) -> None:
+        target = DIST / file
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(page_layout(site=site, asset_version=asset_version, **kwargs), encoding="utf-8")
+
+    # 1. Start page
+    write_page(
+        "index.html",
+        title=f"{site['name']} – {site['kicker']}",
+        path="/",
+        content_html=home_page(site, updates),
+        description=f"{site['headline']} {site['intro']}",
+    )
+
+    # 2. One page per app, with its changelog
+    for key in APP_KEYS:
+        write_page(
+            f"{key}/index.html",
+            title=f"{site[key]['name']} – {site['name']}",
+            path=f"/{key}/",
+            app_key=key,
+            content_html=app_page(site, key, updates[key]),
+            description=site[key]["summary"],
+        )
+
+    # 3. Privacy policies
+    write_page(
+        "semestra/privacy-policy/index.html",
+        title=f"Semestra Privacy Policy – {site['name']}",
+        path="/semestra/privacy-policy/",
+        app_key="semestra",
+        content_html=semestra_privacy(emails["semestra"]),
+        description="Datenschutzerklärung der App Semestra / Privacy policy of the Semestra app.",
+    )
+    write_page(
+        "paradeiser/privacy-policy/index.html",
+        title=f"Paradeiser Privacy Policy – {site['name']}",
+        path="/paradeiser/privacy-policy/",
+        app_key="paradeiser",
+        content_html=paradeiser_privacy(emails["paradeiser"]),
+        description="Datenschutzerklärung der App Paradeiser / Privacy policy of the Paradeiser app.",
+    )
+    write_page(
+        "muninn/privacy/index.html",
+        title=f"Muninn Privacy Policy – {site['name']}",
+        path="/muninn/privacy/",
+        app_key="muninn",
+        content_html=muninn_privacy(emails["muninn"]),
+        description="Datenschutzerklärung der App Muninn / Privacy policy of the Muninn app.",
+    )
+
+    # /paradeiser/privacy/ is an older address of the policy: it forwards to the current one.
+    (DIST / "paradeiser" / "privacy").mkdir(parents=True, exist_ok=True)
+    (DIST / "paradeiser" / "privacy" / "index.html").write_text(
+        """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="refresh" content="0; url=/paradeiser/privacy-policy/" />
+  <link rel="canonical" href="https://lukasgeyer.com/paradeiser/privacy-policy/" />
+  <title>Redirecting to Paradeiser Privacy Policy…</title>
+</head>
+<body>
+  <p>Redirecting to <a href="/paradeiser/privacy-policy/">Paradeiser Privacy Policy</a>…</p>
+</body>
+</html>
 """,
         encoding="utf-8",
     )
 
-    # 8. robots.txt and sitemap.xml
+    # 4. About, imprint and the not-found page (GitHub Pages serves 404.html for unknown addresses)
+    write_page(
+        "about/index.html",
+        title=f"About – {site['name']}",
+        path="/about/",
+        content_html=about_page(site),
+        description="About Lukas Geyer and the apps Semestra, Paradeiser and Muninn.",
+    )
+    write_page(
+        "imprint/index.html",
+        title=f"Imprint – {site['name']}",
+        path="/imprint/",
+        content_html=imprint(emails["semestra"], site_email),
+        description="Impressum / Legal Notice for lukasgeyer.com and the apps Semestra, Paradeiser and Muninn.",
+    )
+    write_page("404.html", title=f"Page not found – {site['name']}", path=None, content_html=NOT_FOUND_PAGE)
+
+    # 5. RSS feed, sitemap and robots.txt
+    (DIST / "rss.xml").write_text(rss_feed(site, updates), encoding="utf-8")
     robots = "User-agent: *\nAllow: /\n"
     if site_url:
-        sitemap_pages = [("/", None)] + ([("/writing/", None)] if writings else [])
-        sitemap_pages += [(w["url"], w["date"]) for w in writings]
-        sitemap_pages += [
-            ("/semestra/", updates[0]["date"] if updates else None),
-            ("/semestra/privacy-policy/", None),
-            ("/paradeiser/", paradeiser_updates[0]["date"] if paradeiser_updates else None),
-            ("/paradeiser/privacy-policy/", None),
-            ("/muninn/", muninn_updates[0]["date"] if muninn_updates else None),
-            ("/muninn/privacy/", None),
-            ("/imprint/", None),
-            ("/about/", None),
-        ]
-        sitemap_urls = "\n".join(
-            f"  <url><loc>{html.escape(site_url + path)}</loc>"
-            + (f"<lastmod>{date.isoformat()}</lastmod>" if date else "")
-            + "</url>"
-            for path, date in sitemap_pages
-        )
-        (DIST / "sitemap.xml").write_text(
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            f"{sitemap_urls}\n</urlset>\n",
-            encoding="utf-8",
-        )
+        (DIST / "sitemap.xml").write_text(sitemap(site_url, updates), encoding="utf-8")
         robots += f"Sitemap: {site_url}/sitemap.xml\n"
     (DIST / "robots.txt").write_text(robots, encoding="utf-8")
 
-    # 9. GitHub Pages metadata (dist/.nojekyll and dist/CNAME)
+    # 6. GitHub Pages metadata (.nojekyll and CNAME)
     (DIST / ".nojekyll").write_text("", encoding="utf-8")
     if site_url:
         host = urllib.parse.urlsplit(site_url).hostname
         if host:
             (DIST / "CNAME").write_text(f"{host}\n", encoding="utf-8")
 
-    print(
-        f"Built {len(updates)} Semestra, {len(paradeiser_updates)} Paradeiser and {len(muninn_updates)} Muninn "
-        f"changelog entries and {len(writings)} stories/essays into {DIST}"
-    )
+    counts = ", ".join(f"{len(updates[key])} {site[key]['name']}" for key in APP_KEYS)
+    print(f"Built the site with changelog entries for {counts} into {DIST}")
 
 
 if __name__ == "__main__":

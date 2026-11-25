@@ -1182,21 +1182,80 @@ def build() -> None:
     <div class="reader-container">
       <div class="reader-controls">
         <a href="/muninn/">&larr; Back to Muninn</a>
+        <div class="legal-lang-links" aria-label="Language">
+          <a href="#de">Deutsch</a>
+          <a href="#en">English</a>
+        </div>
       </div>
-      <article lang="en">
+
+      <article id="de" lang="de">
+        <header class="article-header">
+          <div class="article-meta-line">
+            <span class="kind-tag">Datenschutzerklärung</span>
+            <span>&middot;</span>
+            <span>Muninn</span>
+            <span>&middot;</span>
+            <span>Stand: 25. November 2026</span>
+          </div>
+          <h1 class="article-title">Datenschutzerklärung für Muninn</h1>
+        </header>
+        <div class="prose-body">
+          <div class="legal-summary">
+            <p><strong>Kurz gesagt:</strong> Muninn braucht kein Konto, enthält keine Werbung, keine Analyse- oder Tracking-Tools und betreibt derzeit keine eigenen Server. Deine Stapel, Karten, Bilder und dein Lernverlauf bleiben auf deinem Gerät. Ich als Entwickler habe keinen Zugriff darauf.</p>
+          </div>
+
+          <h2>1. Verantwortlicher</h2>
+          <address class="legal-address">
+            Lukas Geyer<br />
+            Ghegagasse 13/32<br />
+            8020 Graz, Österreich<br />
+            E-Mail: <a href="mailto:{muninn_email}">{muninn_email}</a>
+          </address>
+
+          <h2>2. Daten auf deinem Gerät</h2>
+          <p>Alles, was du in Muninn anlegst, importierst und beim Lernen aufzeichnest – Stapel, Karten mit ihren Texten, Bildern und Tönen, Schlagwörter, dein Lernverlauf mit Bewertungen und Zeiten sowie deine Einstellungen – wird lokal auf deinem Gerät gespeichert und verarbeitet. Diese Daten werden nicht an mich oder an Dritte übertragen. Wenn du die App löschst, werden auch diese Daten gelöscht.</p>
+          <p>Wenn du auf deinem Gerät ein iCloud-Backup oder ein Backup auf einem Computer eingeschaltet hast, sichert Apple die Daten der App wie die anderer Apps mit. Dafür gilt die <a href="https://www.apple.com/at/legal/privacy/" target="_blank" rel="noopener noreferrer">Datenschutzrichtlinie von Apple</a>.</p>
+
+          <h2>3. Import und Export von Stapeln</h2>
+          <p>Wenn du einen Stapel importierst (zum Beispiel eine Anki-Datei), liest Muninn die von dir gewählte Datei auf deinem Gerät ein. Wenn du einen Stapel exportierst, erstellt Muninn eine Datei und übergibt sie an das Teilen-Menü deines Geräts; wohin sie geht, entscheidest du selbst. Muninn versendet dabei nichts von sich aus.</p>
+
+          <h2>4. Fotos und Dateien (optional)</h2>
+          <p>Wenn du einer Karte ein Bild hinzufügst, wählst du es über die Auswahl von Apple aus deinen Fotos oder Dateien. Muninn erhält nur die Bilder, die du auswählst, und keinen Zugriff auf deine übrige Mediathek. Das gewählte Bild wird in Muninn auf deinem Gerät gespeichert.</p>
+
+          <h2>5. Synchronisierung (geplant)</h2>
+          <p>Eine Synchronisierung zwischen deinen eigenen Geräten ist als Funktion geplant, die du selbst einschaltest. Bevor es sie gibt, steht hier, wie sie funktioniert und wo Daten gespeichert werden. Bis dahin verlässt nichts dein Gerät.</p>
+
+          <h2>6. Absturzberichte und Statistiken von Apple</h2>
+          <p>Wenn du in den iOS-Einstellungen zugestimmt hast, Analysedaten mit App-Entwicklern zu teilen, stellt Apple mir anonymisierte Absturzberichte und zusammengefasste Nutzungsstatistiken (z.&nbsp;B. Anzahl der Installationen) zur Verfügung. Daraus kann ich keine Rückschlüsse auf dich als Person ziehen. Du kannst das unter <em>Datenschutz &amp; Sicherheit &rsaquo; Analyse &amp; Verbesserungen</em> ausschalten. Wenn du eine Testversion über TestFlight nutzt, gelten dafür zusätzlich die Bedingungen von Apple für TestFlight.</p>
+
+          <h2>7. Diese Website</h2>
+          <p>Beim Aufruf von lukasgeyer.com verarbeitet der Hosting-Anbieter GitHub, Inc. (USA) über GitHub Pages technisch notwendige Daten wie deine IP-Adresse, Datum und Uhrzeit sowie die aufgerufene Seite, um die Website auszuliefern und abzusichern (Art. 6 Abs. 1 lit. f DSGVO). GitHub kann diese Daten in den USA verarbeiten; die Übermittlung stützt sich auf das EU-US Data Privacy Framework. Näheres in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">Datenschutzerklärung von GitHub</a>. Die Website verwendet keine Cookies und keine Analyse-Tools.</p>
+
+          <h2>8. Deine Rechte</h2>
+          <p>Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch. Da ich keine personenbezogenen Daten über dich speichere, kann ich dir in der Regel nur bestätigen, dass keine vorhanden sind. Schreib mir dazu gern an die oben genannte E-Mail-Adresse.</p>
+          <p>Außerdem kannst du dich bei der Aufsichtsbehörde beschweren. In Österreich ist das die <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Österreichische Datenschutzbehörde</a>, Barichgasse 40–42, 1030 Wien.</p>
+
+          <h2>9. Änderungen</h2>
+          <p>Wenn sich Muninn ändert, passe ich diese Datenschutzerklärung an. Es gilt jeweils die hier veröffentlichte Fassung. Weitere Angaben findest du im <a href="/imprint/">Impressum</a>.</p>
+        </div>
+      </article>
+
+      <hr class="legal-divider" />
+
+      <article id="en" lang="en">
         <header class="article-header">
           <div class="article-meta-line">
             <span class="kind-tag">Privacy Policy</span>
             <span>&middot;</span>
             <span>Muninn</span>
             <span>&middot;</span>
-            <span>Last updated: 24 November 2026</span>
+            <span>Last updated: 25 November 2026</span>
           </div>
           <h1 class="article-title">Muninn Privacy Policy</h1>
         </header>
         <div class="prose-body">
           <div class="legal-summary">
-            <p><strong>In short:</strong> Muninn is still in development and not available yet, so it processes no data of yours. This page says how it is being built, and it will be replaced by a full privacy policy in German and English before the first release.</p>
+            <p><strong>In short:</strong> Muninn needs no account, shows no ads, contains no analytics or tracking tools and currently runs no servers of its own. Your decks, cards, images and review history stay on your device. I, the developer, have no access to them.</p>
           </div>
 
           <h2>1. Controller</h2>
@@ -1207,14 +1266,31 @@ def build() -> None:
             Email: <a href="mailto:{muninn_email}">{muninn_email}</a>
           </address>
 
-          <h2>2. How Muninn is being built</h2>
-          <p>Muninn is planned like my other apps: no account, no ads, no analytics or tracking tools. Your decks, notes and review history are to be stored on your device.</p>
+          <h2>2. Data on your device</h2>
+          <p>Everything you create, import and record while studying in Muninn – decks, cards with their text, images and sounds, tags, your review history with ratings and times, and your settings – is stored and processed locally on your device. This data is not sent to me or to third parties. If you delete the app, this data is deleted too.</p>
+          <p>If you have turned on iCloud Backup or a backup to a computer for your device, Apple backs up the app's data along with that of your other apps. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer">Apple's Privacy Policy</a> applies to that.</p>
 
-          <h2>3. Sync (planned)</h2>
-          <p>Syncing between your own devices is planned as an option you turn on yourself. How it works and where data is stored will be described here before it becomes available.</p>
+          <h2>3. Importing and exporting decks</h2>
+          <p>When you import a deck (for example an Anki file), Muninn reads the file you chose on your device. When you export a deck, Muninn creates a file and hands it to your device's share sheet; where it goes is your decision. Muninn sends nothing by itself.</p>
 
-          <h2>4. This website</h2>
-          <p>When you visit lukasgeyer.com, the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
+          <h2>4. Photos and files (optional)</h2>
+          <p>When you add an image to a card, you choose it from your photos or files through Apple's picker. Muninn receives only the images you choose and has no access to the rest of your library. The chosen image is stored in Muninn on your device.</p>
+
+          <h2>5. Sync (planned)</h2>
+          <p>Syncing between your own devices is planned as an option you turn on yourself. Before it becomes available, this page will say how it works and where data is stored. Until then nothing leaves your device.</p>
+
+          <h2>6. Crash reports and statistics from Apple</h2>
+          <p>If you agreed in iOS Settings to share analytics with app developers, Apple gives me anonymised crash reports and aggregated usage statistics (such as the number of installs). These don't let me identify you. You can turn this off under <em>Privacy &amp; Security &rsaquo; Analytics &amp; Improvements</em>. If you use a test version through TestFlight, Apple's terms for TestFlight apply to it as well.</p>
+
+          <h2>7. This website</h2>
+          <p>When you visit lukasgeyer.com, the hosting provider GitHub, Inc. (USA) processes, through GitHub Pages, technically necessary data such as your IP address, the date and time and the page requested, in order to deliver and secure the website (Art. 6(1)(f) GDPR). GitHub may process this data in the USA; the transfer relies on the EU-U.S. Data Privacy Framework. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>. The website uses no cookies and no analytics tools.</p>
+
+          <h2>8. Your rights</h2>
+          <p>Under the GDPR you have the right of access, rectification, erasure, restriction of processing, data portability and objection. As I store no personal data about you, I can usually only confirm that there is none. Feel free to write to the email address above.</p>
+          <p>You can also lodge a complaint with a supervisory authority. In Austria this is the <a href="https://www.dsb.gv.at" target="_blank" rel="noopener noreferrer">Austrian Data Protection Authority</a>, Barichgasse 40–42, 1030 Vienna.</p>
+
+          <h2>9. Changes</h2>
+          <p>If Muninn changes, I will update this privacy policy. The version published here always applies. See the <a href="/imprint/#en">legal notice</a> for provider details.</p>
         </div>
       </article>
     </div>
@@ -1225,7 +1301,7 @@ def build() -> None:
         path="/muninn/privacy/",
         active_nav="muninn",
         content_html=muninn_privacy_html,
-        description="Privacy Policy for the Muninn spaced-repetition flashcard app.",
+        description="Datenschutzerklärung der App Muninn / Privacy policy of the Muninn app.",
     )
 
     # 5. About Page (dist/about/index.html)

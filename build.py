@@ -31,13 +31,6 @@ PRIVACY_PATHS = {
     "muninn": "/muninn/privacy/",
 }
 
-# Drawn in place of an app icon while an app has no "icon" in site.json.
-PLACEHOLDER_MARK = """<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-  <rect x="4" y="6.5" width="13" height="11" rx="2.2" stroke="currentColor" stroke-width="1.5"/>
-  <path d="M8.5 6.5V5.2C8.5 4.5 9 4 9.7 4H18.8C19.5 4 20 4.5 20 5.2V14.3C20 15 19.5 15.5 18.8 15.5H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="7.5" y1="11.5" x2="13.5" y2="11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-</svg>"""
-
 # The page may only load its own files: no third-party scripts, styles, fonts or frames.
 CONTENT_SECURITY_POLICY = "default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
 
@@ -214,17 +207,25 @@ def chip(status: str) -> str:
 
 
 def app_icon(key: str, app: dict, size: int, transition: bool = False) -> str:
-    """The app's icon from site.json ("icon", a file in assets/img/). "icon_style": "artwork" sets
-    a picture that is not a finished icon on a light tile; without "icon" a placeholder is drawn.
+    """The app's icon from site.json: "icon" is a square image in assets/img/, and the stylesheet
+    rounds its corners. "icon_dark", when given, is shown instead while the system is in dark mode.
+    `size` is the largest size the icon is shown at here; the file itself should be larger.
     `transition` names the icon so that it glides between the start page and the app's page."""
-    cls = "icon" + (f" vt-icon-{key}" if transition else "")
     name = app.get("icon")
     if not name:
-        return f'<span class="{cls} icon--mark">{PLACEHOLDER_MARK}</span>'
-    img = f'<img src="/img/{html.escape(name)}" width="{size}" height="{size}" alt="" />'
-    if app.get("icon_style") == "artwork":
-        return f'<span class="{cls} icon--artwork">{img}</span>'
-    return img.replace("<img ", f'<img class="{cls}" ', 1)
+        raise SystemExit(f'site.json: {key} needs "icon", the file name of its app icon in assets/img/')
+    for file in (name, app.get("icon_dark")):
+        if file and len(set(image_size(file))) != 1:
+            raise SystemExit(f"assets/img/{file}: an app icon must be square")
+    cls = "icon" + (f" vt-icon-{key}" if transition else "")
+    img = f'<img class="{cls}" src="/img/{html.escape(name)}" width="{size}" height="{size}" alt="" />'
+    dark = app.get("icon_dark")
+    if not dark:
+        return img
+    return (
+        f'<picture><source srcset="/img/{html.escape(dark)}" media="(prefers-color-scheme: dark)" />'
+        f"{img}</picture>"
+    )
 
 
 def device(shot: dict, lazy: bool = True) -> str:

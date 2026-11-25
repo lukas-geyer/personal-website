@@ -30,6 +30,7 @@
       "dark": "#4BC2C6"
     },
     "icon": "semestra-icon.png",
+    "icon_dark": "semestra-icon-dark.png",
     "tile_shot": {
       "file": "semestra-01-plan.jpg",
       "alt": "Semestra's plan: study blocks placed between lectures"
@@ -90,8 +91,8 @@
       "light": "#B21826",
       "dark": "#F45249"
     },
-    "icon": "paradeiser-tomato.png",
-    "icon_style": "artwork",
+    "icon": "paradeiser-icon.png",
+    "icon_dark": "paradeiser-icon-dark.png",
     "tile_shot": {
       "file": "paradeiser-01-timer.jpg",
       "alt": "Paradeiser's timer with a focus interval under way"
@@ -154,6 +155,8 @@
       "light": "#472C9C",
       "dark": "#937AE5"
     },
+    "icon": "muninn-icon.png",
+    "icon_dark": "muninn-icon-dark.png",
     "features_title": "The Plan for Muninn",
     "features": [
       {
@@ -166,7 +169,7 @@
       },
       {
         "title": "Anki decks welcome",
-        "text": "Existing Anki decks are to be imported into clean native card types, keeping their templates so they can go back to Anki unchanged."
+        "text": "Existing Anki decks are imported into clean native card types, keeping their templates so they can go back to Anki unchanged."
       },
       {
         "title": "Native apps",

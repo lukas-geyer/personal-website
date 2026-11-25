@@ -348,6 +348,9 @@ a { color: var(--accent); text-decoration: none; }
 
 /* ------------------------------------------------------------ App icons */
 
+/* Square images from site.json, rounded here the way iOS rounds them. In dark mode the icon's
+   dark version is shown, with a hairline so that its black square stands off the black page. */
+picture { display: contents; }
 .icon {
   display: block;
   flex: none;
@@ -356,13 +359,8 @@ a { color: var(--accent); text-decoration: none; }
   aspect-ratio: 1;
   border-radius: 22.4%;
 }
-span.icon { display: grid; place-items: center; }
-.icon--artwork { background: linear-gradient(160deg, #fff8ee, #fbe3cf); }
-.icon--artwork img { display: block; width: 80%; height: auto; }
-.icon--mark { background: #272d3d; color: #f6f3ec; }
-.icon--mark svg { width: 54%; height: auto; }
 @media (prefers-color-scheme: dark) {
-  .icon--mark { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+  .icon { outline: 1px solid rgba(255, 255, 255, 0.14); outline-offset: -1px; }
 }
 
 /* ------------------------------------------------------------ Device frame */

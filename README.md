@@ -45,8 +45,8 @@ Each app has a block under its own name (`semestra`, `paradeiser`, `muninn`):
 | `app_store_url` | When present, the hero shows the App Store button. Without it, the status takes the button's place |
 | `platforms`, `pricing`, `support_email` | The facts under the features |
 | `accent` | The app's colour, as `{"light": "#RRGGBB", "dark": "#RRGGBB"}`. Buttons carry white text in light mode and black text in dark mode, so the light value must be dark enough for white text and the dark value light enough for black text |
-| `icon` | The icon's file name in `assets/img/` (a square PNG; the corners are rounded by the stylesheet). Without this key a placeholder is drawn |
-| `icon_style` | `"artwork"` sets a picture that is not a finished icon (Paradeiser's tomato) on a light tile. Leave it out for a real, full-square icon |
+| `icon` | The app icon's file name in `assets/img/`: a square PNG without rounded corners (the stylesheet rounds them). Required |
+| `icon_dark` | Optional: the icon's dark appearance, shown instead while the system is in dark mode |
 | `tile_shot` | The screenshot on the app's tile on the start page: `{"file": "…", "alt": "…"}`. Without it the tile shows text only |
 | `features_title`, `features` | The feature section of the app's page. Each feature has a `title` and a `text`. A feature with `shots` (a list of `{"file", "alt"}`) becomes a wide row with its screenshots in device frames; features without are set side by side as plain blocks |
 
@@ -54,11 +54,17 @@ The current accents are the suite's Jewel colours: Semestra Teal `#007F82` / `#4
 
 ## Replacing Icons and Screenshots
 
-The site shows the icons that are on the App Store (or, before release, the artwork it has always shown). When an app's icon changes on the App Store:
+The site shows each app's own icon, in its default and its dark appearance (`assets/img/<app>-icon.png` and `assets/img/<app>-icon-dark.png`, 512 × 512). When an app's icon changes:
 
-1. Export the icon as a square PNG, 256 × 256 or larger, without rounded corners, and put it into `assets/img/`. Using the old file name is enough; nothing else changes.
-2. If the file has a new name, put that name into the app's `icon` in `site.json`.
-3. For Paradeiser and Muninn, which have no finished icon on the site yet: remove `"icon_style": "artwork"` (Paradeiser) or add `"icon": "muninn-icon.png"` (Muninn).
+1. Export both appearances as square PNGs, 512 × 512, without rounded corners and without transparency.
+2. Replace the two files in `assets/img/`. Using the same file names is enough; nothing else changes.
+3. If a file has a new name, put that name into the app's `icon` or `icon_dark` in `site.json`. Without `icon_dark` the default icon is shown in dark mode too.
+
+From a 1024 px render on a Mac:
+
+```bash
+sips -Z 512 "<icon render>.png" --out assets/img/<app>-icon.png
+```
 
 Screenshots are the raw App Store screenshots, scaled down (598 × 1300, JPEG). To refresh them after retaking the App Store screenshots, keep the file names and replace the files:
 

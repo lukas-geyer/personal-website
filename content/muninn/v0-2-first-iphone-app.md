@@ -1,7 +1,7 @@
 ---
 version: 0.2 (Phase 2)
 title: The First iPhone App
-date: 2026-11-25
+date: 2026-11-26
 platform: iPhone · iOS 26 or later
 status: In development
 highlights: Muninn runs on the iPhone, with studying, a card browser, statistics, an editor for every card type, and Anki import and export
@@ -21,17 +21,19 @@ Muninn now runs as a real app on the iPhone. It is in development and not on the
 - **Undo:** A tap on the wrong button can be taken back, and the card comes up again.
 - **Multiple Choice You Can Tick:** Tap the options you think are right and Muninn shows which were right, which were wrong and which you missed.
 - **Image Occlusion, Cloze and Typed Answers:** Covered parts of an image, gaps in a text and answers you type are all built in as card types.
+- **Sound:** Cards can carry sound.
 - **Liquid Glass and Dark Mode:** The controls follow the look of iOS 26, in light and dark, in English and German.
 
 ### Cards
 
 - **Browser:** Search every card, and filter by deck, state and type. A card's page shows when it is due, how well you remember it right now and its full review history.
-- **Editor:** Write and edit basic, typed, cloze and multiple-choice cards, with tags, images and simple formatting. Editing a card keeps its learning progress.
+- **Tags:** Tags can be searched, and the tag chips are larger.
+- **Editor:** Write and edit basic, typed, cloze and multiple-choice cards, with tags, images and simple formatting. The editor is tighter, and its formatting bar appears only while you type. Editing a card keeps its learning progress.
 - **Image Occlusion:** Choose an image, draw boxes over what you want to be asked, and cover what would give the answer away.
 
 ### Statistics
 
-- **At a Glance:** Today's reviews and time, your streak, reviews over the last month, quarter or year with how much you remembered, what comes due in the next two weeks, and how many of your cards are settled in memory.
+- **At a Glance:** Today's reviews and time, your streak, reviews over the last month, quarter or year with how much you remembered, what comes due in the next two weeks, and how many of your cards are settled in memory. The dates sit inside the charts.
 
 ### Anki Decks
 
@@ -41,7 +43,16 @@ Muninn now runs as a real app on the iPhone. It is in development and not on the
 ### Settings
 
 - **Your Pace:** Choose how many new cards you see per day and when your study day starts.
+- **Clearer Groups:** The settings are grouped more clearly.
+
+### Icon and Color
+
+- **A New App Icon:** A raven's head in profile on amethyst, and amethyst as the app's color.
+
+### On the Mac
+
+- **A First Real Layout:** Decks in a sidebar, the cards beside the list, studying in the whole window, and menus and keyboard shortcuts. The Mac app is in development like the rest.
 
 ### Up Next
 
-Sound on cards, fixes from a full code review, and a first test version. The Mac app follows once the iPhone app feels right.
+The editor beside the card list on the Mac, the iPad version, then sync through Muninn's own server.

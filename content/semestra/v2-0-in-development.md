@@ -1,7 +1,7 @@
 ---
 version: 2.0
 title: Guided Setup, Week View, Semestra Plus and the Link with Paradeiser
-date: 2026-11-24
+date: 2026-11-26
 platform: iPhone · iPad · iOS 26 or later
 status: In development
 highlights: The biggest update since launch: guided setup, new tabs, week view, registration deadlines, widgets, Semestra Plus and the link with Paradeiser
@@ -21,6 +21,7 @@ Version 2.0 collects everything built since the first release. It is finished in
 - **Readiness and milestones:** Every exam shows how much of its study time is done, and milestones mark your first steps, a week on plan and your first fully prepared exam.
 - **Dynamic Island:** The current study block on the Lock Screen and in the Dynamic Island, with its progress and the time left. With Plus, you pause and finish the focus timer right there.
 - **Redesign:** A calendar like the Calendar app, tidier settings, wheels instead of plus and minus, and better layouts with large text.
+- **New icon and color:** A planner page on teal, and teal as the app's color.
 
 ### Semestra and Paradeiser
 
@@ -34,7 +35,8 @@ Version 2.0 collects everything built since the first release. It is finished in
 - **Grades and ECTS:** Grading scales for Austria, Germany and Switzerland, a weighted average and degree progress.
 - **Retakes:** After a failed exam, more study time is suggested for the next attempt.
 - **Exams from text or a photo**, read on the device.
-- **Also:** statistics, a semester recap to share, PDF export, app icons and accent colors, and iCloud sync.
+- **Accent colors:** Eight to choose from, shared with Paradeiser and Muninn.
+- **Also:** statistics, a semester recap to share, PDF export and iCloud sync.
 
 ### Improved
 

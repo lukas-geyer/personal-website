@@ -607,11 +607,12 @@ span.icon { display: grid; place-items: center; }
 .prose li::marker { color: var(--hairline); }
 .prose strong { font-weight: 600; color: var(--text); }
 .prose code {
-  padding: 1px 6px;
-  border-radius: 6px;
+  padding: 1px 4px;
+  border-radius: 5px;
   background: var(--surface);
   font-family: var(--mono);
   font-size: 0.9em;
+  font-weight: 400;
 }
 .prose--large { font-size: clamp(19px, 2.2vw, 21px); line-height: 1.5; }
 .prose--large > * + * { margin-top: 20px; }
@@ -711,7 +712,7 @@ span.icon { display: grid; place-items: center; }
 
 /* Fingers get 44 px. */
 @media (pointer: coarse) {
-  .footer li a { min-height: 44px; }
+  .footer li a { min-width: 44px; min-height: 44px; }
   .lang-switch a { min-height: 44px; }
 }
 

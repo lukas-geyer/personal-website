@@ -2,7 +2,7 @@
 version: 0.2 (Phase 2)
 title: The First iPhone App
 date: 2026-11-26
-platform: iPhone · iOS 26 or later · Mac in development
+platform: iPhone · iOS 26 or later · iPad and Mac in development
 status: In development
 highlights: Muninn runs on the iPhone, with studying, a card browser, statistics, an editor for every card type, and Anki import and export
 ---
@@ -52,7 +52,13 @@ Muninn now runs as a real app on the iPhone. It is in development and not on the
 ### On the Mac
 
 - **A First Real Layout:** Decks in a sidebar, the cards beside the list, studying in the whole window, and menus and keyboard shortcuts. The Mac app is in development like the rest.
+- **Made for the Mac:** Buttons, sheets and the Settings window are the Mac's own size and kind.
+- **Charts You Can Point At:** Rest the pointer on a bar in Statistics to see its number and its day.
+
+### On the iPad
+
+- **Its Own Layout:** The iPad has the Mac's layout with the iPad's controls: decks in a sidebar, the card list beside the card, and studying across the whole screen. In a narrow window it turns into the iPhone's tabs, and what you had open stays open.
 
 ### Up Next
 
-The editor beside the card list on the Mac, the iPad version, then sync through Muninn's own server.
+Sync through Muninn's own server, then the editor beside the card list on the Mac and the iPad.
